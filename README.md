@@ -79,22 +79,21 @@ func main() -> i32 {
 
 ---
 
-## 🧩 Project Structure
+## 🧩 Project Structure (Intended)
 
 ```
 Faith/
  ├── src/
- │   ├── lexer/            # Lexical analysis
+ │   ├── lexer.cpp         # Lexical analysis
  │   ├── parser/           # Parsing logic
  │   ├── ast/              # Abstract syntax tree nodes
- │   ├── semantic/         # Type checking, symbol resolution
- │   ├── codegen/          # Code generation or IR emitter
+ │   ├── semantic/         # Type checking, sym emitter
  │   ├── runtime/          # Built-in runtime features
  │   └── main.cpp          # Compiler entry
  ├── include/              # Public headers
+ ├── resoruces             # Resource Files
  ├── grammar/
- │   ├── Faith.bnf         # Human-readable grammar
- │   └── Faith.g4          # ANTLR grammar file
+ │   └── Faith.bnf         # Human-readable grammar
  ├── tests/                # Test programs
  ├── examples/             # Example Faith programs
  ├── docs/                 # Design and notes
@@ -109,8 +108,8 @@ Faith is written in **C++23** and built with **CMake**.
 
 ```bash
 # Clone repo
-git clone <PRIVATE_URL>
-cd Faith
+git clone https://github.com/Auth0x78/Faith-Language.git
+cd Faith-Language
 
 # Build
 cmake -B build
@@ -134,8 +133,6 @@ cmake --build build
 ### Parser
 
 - [x] Write BNF grammar
-- [x] Write ANTLR grammar
-- [ ] Fix left-recursion and validate ANTLR parse tree
 - [ ] Build manual recursive-descent parser version
 - [ ] Implement struct parsing and initialization logic
 - [ ] Add switch/match expression parsing
@@ -187,5 +184,5 @@ Not yet ready for public use or contribution.
 ## 🪶 Author
 
 **Akshat Dighade**
- 
+
 Compiler Design, Systems Programming, and Language Engineering Enthusiast

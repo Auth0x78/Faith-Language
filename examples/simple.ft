@@ -1,0 +1,17 @@
+struct Point {
+    x: i32;
+    y: i32;
+};
+
+func distance(p1: *Point, p2: *Point) -> i32 {
+    let dx: i32 = p2->x - p1->x;
+    let dy: i32 = p2->y - p1->y;
+    return (dx * dx + dy * dy);
+}
+
+func main() -> i32 {
+    let a: Point = Point { x: 1.0, y: 2.0 };
+    let b: Point = Point { x: 4.0, y: 6.0 };
+
+    return distance(&a, &b);
+}
