@@ -10,6 +10,7 @@
 Its primary goal is to combine the **clarity of C**, the **error safety of Zig**, and the **expressiveness of modern design** — while staying close to the metal.
 
 This repository contains the **compiler front-end** and will eventually include:
+
 - Lexer and Parser (custom or ANTLR-based)
 - AST representation
 - Semantic analyzer and type checker
@@ -20,14 +21,14 @@ This repository contains the **compiler front-end** and will eventually include:
 
 ## ⚙️ Current Status
 
-| Component | Status | Description |
-|------------|--------|-------------|
-| Lexer | ✅ In Progress | Tokenizes Faith source into lexemes |
-| Parser | 🔧 Partial | Grammar defined (BNF + ANTLR versions) |
-| AST | 🔜 Planned | To represent parsed syntax tree |
-| Semantic Analysis | 🔜 Planned | Type checking and symbol resolution |
-| IR/Codegen | 🔜 Planned | Output backend for C/LLVM IR |
-| Runtime | 🔜 Planned | Small runtime layer for error handling, defer, etc. |
+| Component         | Status         | Description                                         |
+| ----------------- | -------------- | --------------------------------------------------- |
+| Lexer             | ✅ In Progress | Tokenizes Faith source into lexemes                 |
+| Parser            | 🔧 Partial     | Grammar defined (BNF + ANTLR versions)              |
+| AST               | 🔜 Planned     | To represent parsed syntax tree                     |
+| Semantic Analysis | 🔜 Planned     | Type checking and symbol resolution                 |
+| IR/Codegen        | 🔜 Planned     | Output backend for C/LLVM IR                        |
+| Runtime           | 🔜 Planned     | Small runtime layer for error handling, defer, etc. |
 
 ---
 
@@ -38,17 +39,18 @@ This repository contains the **compiler front-end** and will eventually include:
 - **Pointers and references** using `*` and `&` syntax.
 - **Error-aware types** using `!Type` (similar to Zig’s error unions).
 - **Structs with forward declarations** and initialization syntax.
-- **Functions with explicit return types:**  
-  ```c
+- **Functions with explicit return types:**
+
+```c
   func add(a: i32, b: i32) -> i32 {
       return a + b;
   }
-````
+```
 
-* **Function pointers and array types.**
-* **Defer keyword** for scope-based cleanup before early exits.
-* **Switch/Match expressions** for compile-time and value-based branching.
-* **Entry point:** special `main` function is invoked automatically at runtime.
+- **Function pointers and array types.**
+- **Defer keyword** for scope-based cleanup before early exits.
+- **Switch/Match expressions** for compile-time and value-based branching.
+- **Entry point:** special `main` function is invoked automatically at runtime.
 
 ---
 
@@ -124,54 +126,54 @@ cmake --build build
 
 ### Lexer
 
-* [x] Define token types (`TokenType`)
-* [x] Implement scanning logic for keywords, literals, and operators
-* [ ] Add support for multi-line strings and comments
-* [ ] Improve error reporting (with line and column tracking)
+- [x] Define token types (`TokenType`)
+- [x] Implement scanning logic for keywords, literals, and operators
+- [ ] Add support for multi-line strings and comments
+- [ ] Improve error reporting (with line and column tracking)
 
 ### Parser
 
-* [x] Write BNF grammar
-* [x] Write ANTLR grammar
-* [ ] Fix left-recursion and validate ANTLR parse tree
-* [ ] Build manual recursive-descent parser version
-* [ ] Implement struct parsing and initialization logic
-* [ ] Add switch/match expression parsing
+- [x] Write BNF grammar
+- [x] Write ANTLR grammar
+- [ ] Fix left-recursion and validate ANTLR parse tree
+- [ ] Build manual recursive-descent parser version
+- [ ] Implement struct parsing and initialization logic
+- [ ] Add switch/match expression parsing
 
 ### AST & Semantic Analysis
 
-* [ ] Define AST node types
-* [ ] Implement symbol table for variables/functions
-* [ ] Type checking and coercion rules
-* [ ] Error handling for invalid operations
-* [ ] Function overloads and extern declarations
+- [ ] Define AST node types
+- [ ] Implement symbol table for variables/functions
+- [ ] Type checking and coercion rules
+- [ ] Error handling for invalid operations
+- [ ] Function overloads and extern declarations
 
 ### Code Generation
 
-* [ ] Basic IR or C-code emission backend
-* [ ] Integrate LLVM for optimized IR (optional)
-* [ ] Support for function calls, structs, and defer
+- [ ] Basic IR or C-code emission backend
+- [ ] Integrate LLVM for optimized IR (optional)
+- [ ] Support for function calls, structs, and defer
 
 ### Runtime
 
-* [ ] Implement error union (`!type`) behavior
-* [ ] Add minimal runtime library for IO and memory
-* [ ] Add panic/defer runtime behavior
+- [ ] Implement error union (`!type`) behavior
+- [ ] Add minimal runtime library for IO and memory
+- [ ] Add panic/defer runtime behavior
 
 ### Testing & Examples
 
-* [ ] Unit tests for lexer and parser
-* [ ] Create sample Faith programs
-* [ ] Test struct, pointer, defer, and error handling features
+- [ ] Unit tests for lexer and parser
+- [ ] Create sample Faith programs
+- [ ] Test struct, pointer, defer, and error handling features
 
 ---
 
 ## 💡 Design Notes
 
-* The **`!Type`** system mimics Zig’s error unions for explicit error handling.
-* The **`defer`** keyword ensures deterministic cleanup.
-* Functions cannot be both `extern` and `static` (enforced by parser).
-* The compiler front-end is modular — later backends can target C or LLVM IR.
+- The **`!Type`** system mimics Zig’s error unions for explicit error handling.
+- The **`defer`** keyword ensures deterministic cleanup.
+- Functions cannot be both `extern` and `static` (enforced by parser).
+- The compiler front-end is modular — later backends can target C or LLVM IR.
 
 ---
 
