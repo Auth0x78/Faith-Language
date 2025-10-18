@@ -49,7 +49,8 @@ read_file_to_string(const std::filesystem::path &path,
 int main() {
 
   std::string filepath;
-  std::cout << "Enter filepath (DEBUG): ";
+  Logger::fmtLog(LogLevel::Info, "Faith Compiler - Debug File Reader\n "
+                                 "Enter path to file to compile(.ft):");
   std::cin >> filepath;
   const std::filesystem::path osfilepath(filepath);
 
@@ -59,13 +60,14 @@ int main() {
     // Failure! Handle the specific error.
     switch (expected_content.error()) {
     case FileError::CannotOpenFile:
-      std::cerr << "Error: Could not open the file.\n";
+      Logger::fmtLog(LogLevel::Error, "Error: Could not open the file.");
       break;
     case FileError::CannotReadFile:
-      std::cerr << "Error: An issue occurred while reading the file.\n";
+      Logger::fmtLog(LogLevel::Error,
+                     "Error: An issue occurred while reading the file.");
       break;
     case FileError::FileTooLarge:
-      std::cerr << "Error: File exceeds the 128MB limit.\n";
+      Logger::fmtLog(LogLevel::Error, "Error: File exceeds the 128MB limit.");
       break;
     }
     return 1;
@@ -77,7 +79,7 @@ int main() {
   // Create a non-owning view of the data for processing.
   std::string_view content_view(file_buffer);
 
-  std::cout << "Successfully read " << content_view.length() << " bytes.\n";
-
+  Logger::fmtLog(LogLevel::Info, "Successfully read %lld bytes",
+                 content_view.length());
   return 0;
 }
