@@ -3,6 +3,7 @@
 #include <fstream>
 #include <string>
 #include <string_view>
+#include <vector>
 
 #include "Lexer.h"
 #include "Logger.h"
@@ -81,5 +82,10 @@ int main() {
 
   Logger::fmtLog(LogLevel::Info, "Successfully read %lld bytes",
                  content_view.length());
+
+  // Provide the file's content to Lexer for scanning
+  Lexer lexer(content_view);
+  std::vector<Token> scannedTokens = std::move(lexer.scanTokens());
+
   return 0;
 }

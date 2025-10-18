@@ -1,6 +1,8 @@
 #include "Lexer.h"
 #define MIN_TOKENS_SIZE 128
 
+static const Token ignoreToken(TokenType::Ignore, "#ignore", 0x0BAD);
+
 using TT = TokenType;
 static const std::unordered_map<std::string_view, TokenType> s_keywordTable = {
     {"func", TokenType::Kw_Func},
@@ -69,7 +71,7 @@ std::vector<Token> &Lexer::scanTokens() {
     start = current;
 
     Token token = scanToken();
-    if (token.type != TT::EndOfFile)
+    if (token.type != TT::EndOfFile && token.type != TT::Ignore)
       tokens.push_back(token);
   }
 
@@ -129,9 +131,9 @@ Token Lexer::scanToken() {
     return makeToken(TT::Star);
   case '/':
     if (match('/'))
-      skipLineComment();
+      return skipLineComment();
     else if (match('*'))
-      skipMultilineComment();
+      return skipMultilineComment();
     else if (match('='))
       return makeToken(TT::SlashEqual);
 
@@ -192,18 +194,18 @@ Token Lexer::scanToken() {
   case '\r':
   case '\t':
     // ignore whitespace
-    break;
+    return ignoreToken;
   case '\n':
     line++;
+    return ignoreToken;
     break;
   default:
-    if (std::isalpha(c) || c == '_') {
+    if (std::isalpha(c) || c == '_')
       return scanWord();
-    } else if (std::isdigit(c)) {
+    else if (std::isdigit(c))
       return scanNumber(c);
-    } else {
+    else
       return errorToken("Unexpected character found!");
-    }
   }
 
   return errorToken("Error[Lexer::scanToken] : Unreachable!");
@@ -403,9 +405,9 @@ char Lexer::advance() { return source[current++]; }
 char Lexer::peek() const { return source[current]; }
 
 char Lexer::peekNext() {
-  if (isAtEnd())
+  if (current + 1 >= source.size() || source[current + 1] == '\0')
     return '\0';
-  return source[current];
+  return source[current + 1];
 }
 
 bool Lexer::match(char expected) {
@@ -415,13 +417,16 @@ bool Lexer::match(char expected) {
   return true;
 }
 
-void Lexer::skipLineComment() {
+Token Lexer::skipLineComment() {
   while (!isAtEnd() && peek() != '\n')
     advance();
+  return ignoreToken;
 }
 
-void Lexer::skipMultilineComment() {
-  while (!isAtEnd() && (peek() != '*' && peekNext() != '/')) {
+Token Lexer::skipMultilineComment() {
+  while (!isAtEnd()) {
+    if (peek() == '*' && peekNext() == '/')
+      break;
     if (peek() == '\n')
       line++;
     advance();
@@ -431,12 +436,13 @@ void Lexer::skipMultilineComment() {
   if (isAtEnd()) {
     Logger::fmtLog(LogLevel::Warning,
                    "Multiline comment unclosed at end of file");
-    return;
+    return ignoreToken;
   }
 
   // Consume the closing '*/'
   advance(); // consume '*'
   advance(); // consume '/'
+  return ignoreToken;
 }
 
 Token Lexer::makeToken(TokenType type) {

@@ -133,8 +133,9 @@ enum class TokenType {
   // ===========================================================================
 
   // ===========================================================================
-  // ERROR / END
+  // IGNORE TOKEN / ERROR / END
   // ===========================================================================
+  Ignore,
   Error,
   EndOfFile
 };
@@ -162,8 +163,8 @@ private:
   Token scanNumber(char firstDigit);
   Token scanStringLiteral();
   Token scanCharLiteral();
-  void skipLineComment();
-  void skipMultilineComment();
+  Token skipLineComment();
+  Token skipMultilineComment();
 
   bool isAtEnd() const;
   char advance();
