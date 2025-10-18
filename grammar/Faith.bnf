@@ -1,5 +1,5 @@
 (* ======================================================= *)
-(*                FAITH LANGUAGE — BNF GRAMMAR             *)
+(*                FAITH LANGUAGE â€” BNF GRAMMAR             *)
 (* ======================================================= *)
 
 (* ---------------------------- *)
@@ -27,7 +27,7 @@
 
 <param_list> ::= <param> { "," <param> }
 <param>       ::= <identifier> ":" <type>
-(* Function parameters — name and type pairs. *)
+(* Function parameters â€” name and type pairs. *)
 
 
 (* ---------------------------- *)
@@ -55,13 +55,13 @@
 <primitive_type> ::= "i8" | "i16" | "i32" | "i64"
                    | "f32" | "f64"
                    | "char" | "bool" | "void"
-(* Primitive types — integer, floating-point, char, bool, void. *)
+(* Primitive types â€” integer, floating-point, char, bool, void. *)
 
 <func_ptr_type> ::= "*" "func" "(" [ <param_list> ] ")" "->" <type>
-(* Function pointer type — e.g., *func(i32, i32) -> i32 *)
+(* Function pointer type â€” e.g., *func(i32, i32) -> i32 *)
 
 <type_suffix> ::= "[]"
-(* Array type — e.g., i32[] or MyStruct[] *)
+(* Array type â€” e.g., i32[] or MyStruct[] *)
 
 
 (* ---------------------------- *)
@@ -79,7 +79,7 @@
 
 <struct_init> ::= <identifier> "{" [ <struct_init_field> { "," <struct_init_field> } ] "}"
 <struct_init_field> ::= <identifier> ":" <expr>
-(* Struct literal — e.g., Point { x: 10, y: 20 }. *)
+(* Struct literal â€” e.g., Point { x: 10, y: 20 }. *)
 
 
 (* ---------------------------- *)
@@ -119,7 +119,7 @@
 (* Return from function. *)
 
 <defer_stmt> ::= "defer" <expr> ";"
-(* Defer statement — schedules expr to run on scope exit (like Go). *)
+(* Defer statement â€” schedules expr to run on scope exit (like Go). *)
 
 
 (* ---------------------------- *)
@@ -128,7 +128,7 @@
 
 <switch_stmt> ::= "switch" "(" <expr> ")" "{" { <case_block> } [ "default" ":" { <stmt> } ] "}"
 <case_block>  ::= "case" <const_expr> ":" { <stmt> }
-(* C-style switch — case values must be compile-time constants. *)
+(* C-style switch â€” case values must be compile-time constants. *)
 
 <match_stmt> ::= "match" <expr> "{" { <pattern_list> "=>" { <stmt> } } "}"
 <pattern_list> ::= <pattern> { "|" <pattern> }
@@ -190,7 +190,19 @@
 
 <identifier> ::= <letter> { <letter> | <digit> | "_" }
 <number>     ::= <digit> { <digit> }
-<string_literal> ::= '"' { <any_char_except_quote> } '"'
+<char_literal> ::= "'" <char_content> "'"
+
+<char_content> ::= <printable_char_except_quote_and_backslash>
+                 | <escape_sequence>
+
+<escape_sequence> ::= "\\" ( "n" | "r" | "t" | "\\" | "'" | "\"" | <decimal_escape>)
+
+<decimal_escape> ::= <digit> <digit>? <digit>?          (* e.g., '\101' for 'A' *)
+<hex_escape>   ::= "x" <hex_digit> <hex_digit>?       (* e.g., '\x41' for 'A' *)
+
+<string_literal> ::= '"' { <any_char_except_quote> } '"' | '"""' {any_char_expect_quote} '"""'
 <letter> ::= "A" | "B" | ... | "Z" | "a" | "b" | ... | "z"
 <digit>  ::= "0" | "1" | ... | "9"
-<any_char_except_quote> ::= any character except '"'
+<any_char_except_quote> ::= any character except '"' expect when '\"' is used
+(* any character except quote but you can use escpace sequence to add it *)
+(* Identifiers, numbers, and string literals. *)
