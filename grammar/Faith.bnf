@@ -21,8 +21,8 @@
 (* External function declaration (can include linkage name). *)
 
 <func_decl> ::= "static"? "func" <identifier> "(" [ <param_list> ] ")" [ "->" <type> ] ( <compound_stmt> | ";" )
-<func_decl_non_static> ::= "func" <identifier> "(" [ <param_list> ] ")" [ "->" <type> ] ( <compound_stmt> | ";" )
-<func_def>  ::= "func" <identifier> "(" [ <param_list> ] ")" [ "->" <type> ] <compound_stmt>
+<func_decl> ::= "static"? "func" <identifier> "(" [ <param_list> ] ")" [ "->" <type> ] <func_body>
+<func_body> ::= <compound_stmt> | ";"
 (* Function definition or declaration. Return type optional; default is void. *)
 
 <param_list> ::= <param> { "," <param> }
@@ -80,6 +80,9 @@
 <struct_init> ::= <identifier> "{" [ <struct_init_field> { "," <struct_init_field> } ] "}"
 <struct_init_field> ::= <identifier> ":" <expr>
 (* Struct literal — e.g., Point { x: 10, y: 20 }. *)
+
+<struct_type> ::= <identifier>
+(* A struct type is its name, e.g., Point or Node. *)
 
 
 (* ---------------------------- *)
@@ -199,10 +202,16 @@
 
 <decimal_escape> ::= <digit> <digit>? <digit>?          (* e.g., '\101' for 'A' *)
 <hex_escape>   ::= "x" <hex_digit> <hex_digit>?       (* e.g., '\x41' for 'A' *)
+<hex_digit> ::= <digit> | "a" | "b" | "c" | "d" | "e" | "f"
+              | "A" | "B" | "C" | "D" | "E" | "F"
 
-<string_literal> ::= '"' { <any_char_except_quote> } '"' | '"""' {any_char_expect_quote} '"""'
+<printable_char_except_quote_and_backslash> ::= any ASCII printable char except ' and \
+
+<string_literal> ::= '"' { <string_content> } '"' | '"""' { <raw_string_content> } '"""'
+<string_content> ::= <any_char_except_quote_and_backslash> | <escape_sequence>
+<raw_string_content> ::= any character except '"""'
 <letter> ::= "A" | "B" | ... | "Z" | "a" | "b" | ... | "z"
 <digit>  ::= "0" | "1" | ... | "9"
-<any_char_except_quote> ::= any character except '"' expect when '\"' is used
+<any_char_except_quote_and_backslash> ::= any ASCII printable char except " and \
 (* any character except quote but you can use escpace sequence to add it *)
 (* Identifiers, numbers, and string literals. *)
