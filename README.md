@@ -116,7 +116,7 @@ cmake -B build
 cmake --build build
 
 # Run the compiler
-./build/faith <source.fa>
+./build/faith <source.ft>
 ```
 
 ---
@@ -183,6 +183,4 @@ Not yet ready for public use or contribution.
 
 ## 🪶 Author
 
-**Akshat Dighade**
-
-Compiler Design, Systems Programming, and Language Engineering Enthusiast
+**Akshat Dighade**: Compiler Design, Systems Programming, and Language Engineering Enthusiast & Learner
