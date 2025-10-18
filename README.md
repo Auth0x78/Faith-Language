@@ -62,7 +62,7 @@ struct Point {
     y: f32;
 };
 
-func distance(p1: &Point, p2: &Point) -> f32 {
+func distance(p1: *Point, p2: *Point) -> f32 {
     let dx: f32 = p2->x - p1->x;
     let dy: f32 = p2->y - p1->y;
     return (dx * dx + dy * dy);
