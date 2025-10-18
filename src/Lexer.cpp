@@ -80,7 +80,7 @@ std::vector<Token> &Lexer::scanTokens() {
 }
 
 Token Lexer::scanToken() {
-  char c = consume();
+  char c = advance();
   switch (c) {
   case '(':
     return makeToken(TT::LeftParen);
@@ -130,6 +130,8 @@ Token Lexer::scanToken() {
   case '/':
     if (match('/'))
       skipLineComment();
+    else if (match('*'))
+      skipMultilineComment();
     else if (match('='))
       return makeToken(TT::SlashEqual);
 
@@ -182,6 +184,10 @@ Token Lexer::scanToken() {
       return makeToken(TT::ShiftRight);
 
     return makeToken(TT::Greater);
+  case '"':
+    return scanStringLiteral();
+  case '\'':
+    return scanCharLiteral();
   case ' ':
   case '\r':
   case '\t':
@@ -205,7 +211,7 @@ Token Lexer::scanToken() {
 
 Token Lexer::scanWord() {
   while (!isAtEnd() && (std::isalnum(peek()) || peek() == '_'))
-    consume();
+    advance();
   std::string_view word(source.data() + start, current - start);
 
   // Check if it is a keyword or identifier
@@ -222,44 +228,177 @@ Token Lexer::scanNumber(char firstDigit) {
     if (match('x') || match('X')) {
       // Hex literal
       while (!isAtEnd() && isHexDigit(peek()))
-        consume();
+        advance();
       return makeToken(TT::HexLiteral);
     } else if (match('b') || match('B')) {
       while (!isAtEnd() && (peek() == '0' || peek() == '1'))
-        consume();
+        advance();
       return makeToken(TT::BinaryLiteral);
     }
   }
 
   while (!isAtEnd() && std::isdigit(peek()))
-    consume();
+    advance();
   if (!isAtEnd() && peek() == '.' && std::isdigit(peekNext())) {
     isFloat = true;
-    consume();
+    advance();
 
     while (!isAtEnd() && std::isdigit(peek()))
-      consume();
+      advance();
   }
 
   if (!isAtEnd() && (peek() == 'e' || peek() == 'E')) {
     isFloat = true;
-    consume();
+    advance();
 
     if (!isAtEnd() && (peek() == '+' || peek() == '-'))
-      consume();
+      advance();
     if (isAtEnd() || !isdigit(peek())) {
       return errorToken("Invalid float exponent in number literal!");
     }
     while (!isAtEnd() && isdigit(peek()))
-      consume();
+      advance();
   }
 
   return makeToken(isFloat ? TT::FloatLiteral : TT::IntLiteral);
 }
 
-bool Lexer::isAtEnd() const { return source[current] == '\0'; }
+Token Lexer::scanStringLiteral() {
+  auto handleEscapeSequence = [&]() {
+    if (match('n') || match('r') || match('t') || match('\\') || match('\'') ||
+        match('"')) {
+      // Consumed a simple escape.
+    } else if (match('x')) {
+      // Hex escape: \xHH
+      if (!std::isxdigit(peek()))
+        return errorToken("Invalid hex escape in string.");
+      advance(); // Consume first hex digit
+      if (std::isxdigit(peek()))
+        advance(); // Consume optional second
+    } else if (std::isdigit(peek())) {
+      // Decimal escape: \DDD
+      advance(); // Consume first digit
+      if (std::isdigit(peek()))
+        advance(); // Consume optional second
+      if (std::isdigit(peek()))
+        advance(); // Consume optional third
+    }
 
-char Lexer::consume() { return source[current++]; }
+    return errorToken("Unknown escape sequence in string.");
+  };
+
+  if (match('"') && match('"')) {
+    // --- Handle raw string literal: """...""" ---
+    ERROR(__LINE__, "Multiline string needs to be tested");
+    while (!isAtEnd()) {
+      if (match('"')) {
+        // Found a quote. Check if it's the """ terminator.
+        if (match('"') && match('"')) {
+          return makeToken(TT::StringLiteral);
+        }
+        // It was just one (") or two ("") quotes, not the end.
+        // Keep consuming as part of the string.
+      } else if (match('\\')) {
+        handleEscapeSequence();
+      } else if (peek() == '\n') {
+        // Raw strings allow newlines.
+        line++;
+        advance();
+      } else {
+        // Any other character.
+        advance();
+      }
+    }
+
+    // Reached EOF without the """ terminator.
+    return errorToken("Unterminated raw string literal.");
+  }
+
+  // --- Handle standard string literal: "..." ---
+  while (!isAtEnd() && peek() != '"') {
+    if (peek() == '\n') {
+      return errorToken("Unterminated string literal (newline found).");
+    }
+
+    // Handle escape sequences
+    if (match('\\')) {
+      handleEscapeSequence();
+    } else {
+      // A regular character.
+      advance();
+    }
+  }
+
+  // Check for the closing quote.
+  if (!match('"')) {
+    return errorToken("Unterminated string literal.");
+  }
+
+  return makeToken(TT::StringLiteral);
+}
+
+Token Lexer::scanCharLiteral() {
+  // 1. Check for <char_content>
+  if (match('\\')) {
+    // --- Handle <escape_sequence> ---
+
+    // Simple escapes: \n, \r, \t, \\, \', \"
+    if (match('n') || match('r') || match('t') || match('\\') || match('\'') ||
+        match('"')) {
+      // Valid escape, content is consumed.
+
+    }
+    // <hex_escape>: \xHH
+    else if (match('x')) {
+      if (!std::isxdigit(peek())) {
+        return errorToken(
+            "Invalid hex escape: '\\x' must be followed by hex digits.");
+      }
+      advance(); // Consume first hex digit
+      if (std::isxdigit(peek())) {
+        advance(); // Consume optional second hex digit
+      }
+    }
+    // <decimal_escape>: \DDD
+    else if (std::isdigit(peek())) {
+      advance(); // Consume first digit
+      if (std::isdigit(peek()))
+        advance(); // Consume optional second
+      if (std::isdigit(peek()))
+        advance(); // Consume optional third
+      // Note: A real implementation might also check if the value is > 255
+    } else {
+      return errorToken("Unknown escape sequence.");
+    }
+  } else if (peek() == '\'') {
+    // This is an empty character literal, e.g., ''
+    return errorToken("Empty character literal.");
+  } else if (isAtEnd() || peek() == '\n') {
+    // Reached end of file or a newline without a closing quote.
+    return errorToken("Unterminated character literal.");
+  } else if (isprint(peek())) {
+    advance(); // Consume the character
+  } else {
+    // A non-printable char that wasn't part of an escape sequence.
+    return errorToken("Invalid character in literal.");
+  }
+
+  // 2. Consume the closing "'"
+  if (!match('\'')) {
+    // We parsed valid content, but the closing quote is missing.
+    // e.g., 'a\n or 'a' at EOF.
+    return errorToken("Unterminated character literal.");
+  }
+
+  // 3. Success, token made includes in the SV: '*'
+  return makeToken(TT::CharLiteral);
+}
+
+bool Lexer::isAtEnd() const {
+  return current >= source.size() || source[current] == '\0';
+}
+
+char Lexer::advance() { return source[current++]; }
 
 char Lexer::peek() const { return source[current]; }
 
@@ -278,7 +417,26 @@ bool Lexer::match(char expected) {
 
 void Lexer::skipLineComment() {
   while (!isAtEnd() && peek() != '\n')
-    consume();
+    advance();
+}
+
+void Lexer::skipMultilineComment() {
+  while (!isAtEnd() && (peek() != '*' && peekNext() != '/')) {
+    if (peek() == '\n')
+      line++;
+    advance();
+  }
+
+  // Is at end of file without closing '*/'
+  if (isAtEnd()) {
+    Logger::fmtLog(LogLevel::Warning,
+                   "Multiline comment unclosed at end of file");
+    return;
+  }
+
+  // Consume the closing '*/'
+  advance(); // consume '*'
+  advance(); // consume '/'
 }
 
 Token Lexer::makeToken(TokenType type) {

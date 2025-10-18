@@ -1,11 +1,11 @@
 ﻿#include <expected>
 #include <filesystem> // For std::filesystem::file_size
 #include <fstream>
-#include <iostream>
 #include <string>
 #include <string_view>
 
 #include "Lexer.h"
+#include "Logger.h"
 
 // A clear error type for our function
 enum class FileError {

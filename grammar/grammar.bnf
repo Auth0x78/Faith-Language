@@ -1,0 +1,208 @@
+(* ======================================================= *)
+(*                FAITH LANGUAGE — BNF GRAMMAR             *)
+(* ======================================================= *)
+
+(* ---------------------------- *)
+(*  PROGRAM STRUCTURE           *)
+(* ---------------------------- *)
+
+<program> ::= { <external_decl> }
+(* A program is a sequence of top-level declarations. *)
+
+<external_decl> ::= <func_def> | <func_decl> | <var_decl> | <extern_decl> | <struct_decl> | <struct_forward_decl>
+(* Top-level entities: functions, global vars, externs, structs. *)
+
+
+(* ---------------------------- *)
+(*  FUNCTION DECLARATIONS       *)
+(* ---------------------------- *)
+
+<extern_decl> ::= "extern" [ <string_literal> ] <func_decl_non_static>
+(* External function declaration (can include linkage name). *)
+
+<func_decl> ::= "static"? "func" <identifier> "(" [ <param_list> ] ")" [ "->" <type> ] ( <compound_stmt> | ";" )
+<func_decl_non_static> ::= "func" <identifier> "(" [ <param_list> ] ")" [ "->" <type> ] ( <compound_stmt> | ";" )
+<func_def>  ::= "func" <identifier> "(" [ <param_list> ] ")" [ "->" <type> ] <compound_stmt>
+(* Function definition or declaration. Return type optional; default is void. *)
+
+<param_list> ::= <param> { "," <param> }
+<param>       ::= <identifier> ":" <type>
+(* Function parameters — name and type pairs. *)
+
+
+(* ---------------------------- *)
+(*  VARIABLE DECLARATIONS       *)
+(* ---------------------------- *)
+
+<var_decl> ::= ( "let" | "const" ) <identifier> ":" <type> [ "=" <expr> ] ";"
+(* Local or global variable declaration. *)
+
+
+(* ---------------------------- *)
+(*  TYPE SYSTEM                 *)
+(* ---------------------------- *)
+
+<type> ::= [ "?=" ] <base_type> [ <type_suffix> ]
+(* Type specifier, may be prefixed by '?=' to indicate error-returning type. *)
+
+<base_type> ::= <primitive_type>
+              | <struct_type>
+              | <func_ptr_type>
+              | "*" <base_type>       (* pointer type, e.g., *i32 or i32* *)
+              | "&" <base_type>       (* reference type, e.g., &i32 *)
+(* Base type component, before array or composite suffixes. *)
+
+<primitive_type> ::= "i8" | "i16" | "i32" | "i64"
+                   | "f32" | "f64"
+                   | "char" | "bool" | "void"
+(* Primitive types — integer, floating-point, char, bool, void. *)
+
+<func_ptr_type> ::= "*" "func" "(" [ <param_list> ] ")" "->" <type>
+(* Function pointer type — e.g., *func(i32, i32) -> i32 *)
+
+<type_suffix> ::= "[]"
+(* Array type — e.g., i32[] or MyStruct[] *)
+
+
+(* ---------------------------- *)
+(*  STRUCTS                     *)
+(* ---------------------------- *)
+
+<struct_decl> ::= "struct" <identifier> "{" { <struct_field> } "}" ";"
+(* Full struct definition. *)
+
+<struct_field> ::= <identifier> ":" <type> ";"
+(* Field member in a struct. *)
+
+<struct_forward_decl> ::= "struct" <identifier> ";"
+(* Forward declaration for recursive struct support. *)
+
+<struct_init> ::= <identifier> "{" [ <struct_init_field> { "," <struct_init_field> } ] "}"
+<struct_init_field> ::= <identifier> ":" <expr>
+(* Struct literal — e.g., Point { x: 10, y: 20 }. *)
+
+
+(* ---------------------------- *)
+(*  STATEMENTS AND CONTROL FLOW *)
+(* ---------------------------- *)
+
+<compound_stmt> ::= "{" { <stmt> } "}"
+(* Compound block of statements. *)
+
+<stmt> ::= <expr_stmt>
+          | <var_decl>
+          | <if_stmt>
+          | <while_stmt>
+          | <for_stmt>
+          | <return_stmt>
+          | <defer_stmt>
+          | <switch_stmt>
+          | <match_stmt>
+          | <compound_stmt>
+          | ";"
+(* General statement list. *)
+
+<expr_stmt> ::= [ <expr> ] ";"
+(* Expression followed by semicolon, e.g., function call or assignment. *)
+
+<if_stmt> ::= "if" [ "(" <expr> ")" ] <stmt> [ "else" <stmt> ]
+(* Conditional branch. Parentheses optional. *)
+
+<while_stmt> ::= "while" [ "(" <expr> ")" ] <stmt>
+(* While loop. *)
+
+<for_stmt> ::= "for" [ "(" <for_init>? ";" <expr>? ";" <expr>? ")" ] <stmt>
+<for_init> ::= <var_decl> | <expr>
+(* For loop (C-style). *)
+
+<return_stmt> ::= "return" [ <expr> ] ";"
+(* Return from function. *)
+
+<defer_stmt> ::= "defer" <expr> ";"
+(* Defer statement — schedules expr to run on scope exit (like Go). *)
+
+
+(* ---------------------------- *)
+(*  SWITCH / MATCH EXPRESSIONS  *)
+(* ---------------------------- *)
+
+<switch_stmt> ::= "switch" "(" <expr> ")" "{" { <case_block> } [ "default" ":" { <stmt> } ] "}"
+<case_block>  ::= "case" <const_expr> ":" { <stmt> }
+(* C-style switch — case values must be compile-time constants. *)
+
+<match_stmt> ::= "match" <expr> "{" { <pattern_list> "=>" { <stmt> } } "}"
+<pattern_list> ::= <pattern> { "|" <pattern> }
+<pattern> ::= <const_expr> | "_"
+(* Rust-style pattern matching. *)
+
+<const_expr> ::= <number> | <string_literal> | <identifier>
+(* Expression known at compile time. *)
+
+
+(* ---------------------------- *)
+(*  EXPRESSIONS                 *)
+(* ---------------------------- *)
+
+<expr> ::= <assignment_expr>
+(* Entry point for all expressions. *)
+
+<assignment_expr> ::= <logical_or_expr> [ "=" <assignment_expr> ]
+(* Assignment, right-associative. *)
+
+<logical_or_expr> ::= <logical_and_expr> { "||" <logical_and_expr> }
+<logical_and_expr> ::= <equality_expr> { "&&" <equality_expr> }
+<equality_expr> ::= <relational_expr> { ( "==" | "!=" ) <relational_expr> }
+<relational_expr> ::= <add_expr> { ( "<" | "<=" | ">" | ">=" ) <add_expr> }
+<add_expr> ::= <mul_expr> { ( "+" | "-" ) <mul_expr> }
+<mul_expr> ::= <unary_expr> { ( "*" | "/" | "%" ) <unary_expr> }
+
+<unary_expr> ::= ( "+" | "-" | "!" | "*" | "&" ) <unary_expr> | <postfix_expr>
+(* Unary operators include:
+   +, -, logical NOT (!), dereference (*), and address-of (&). *)
+
+<postfix_expr> ::= <primary_expr> { <postfix_op> }
+<postfix_op> ::= "." <identifier>
+               | "->" <identifier>
+               | "(" [ <arg_list> ] ")"
+               | "[" <expr> "]"
+(* Postfix operations: member access, function call, and array indexing. *)
+
+<primary_expr> ::= <identifier>
+                 | <number>
+                 | <string_literal>
+                 | "(" <expr> ")"
+                 | <struct_init>
+(* Base expression forms. *)
+
+
+(* ---------------------------- *)
+(*  FUNCTION CALLS              *)
+(* ---------------------------- *)
+
+<func_call> ::= <identifier> "(" [ <arg_list> ] ")"
+<arg_list> ::= <expr> { "," <expr> }
+(* Standard function call syntax. *)
+
+
+(* ---------------------------- *)
+(*  LEXICAL ELEMENTS            *)
+(* ---------------------------- *)
+
+<identifier> ::= <letter> { <letter> | <digit> | "_" }
+<number>     ::= <digit> { <digit> }
+<char_literal> ::= "'" <char_content> "'"
+
+<char_content> ::= <printable_char_except_quote_and_backslash>
+                 | <escape_sequence>
+
+<escape_sequence> ::= "\\" ( "n" | "r" | "t" | "\\" | "'" | "\"" | <decimal_escape>)
+
+<decimal_escape> ::= <digit> <digit>? <digit>?          (* e.g., '\101' for 'A' *)
+<hex_escape>   ::= "x" <hex_digit> <hex_digit>?       (* e.g., '\x41' for 'A' *)
+
+<string_literal> ::= '"' { <any_char_except_quote> } '"' | '"""' {any_char_expect_quote} '"""'
+<letter> ::= "A" | "B" | ... | "Z" | "a" | "b" | ... | "z"
+<digit>  ::= "0" | "1" | ... | "9"
+<any_char_except_quote> ::= any character except '"' expect when '\"' is used
+(* any character except quote but you can use escpace sequence to add it *)
+(* Identifiers, numbers, and string literals. *)

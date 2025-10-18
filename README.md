@@ -127,7 +127,9 @@ cmake --build build
 
 - [x] Define token types (`TokenType`)
 - [x] Implement scanning logic for keywords, literals, and operators
-- [ ] Add support for multi-line strings and comments
+- [x] Add support for multi-line comments
+- [x] Add support for multi-line strings
+- [ ] Test support for multi-line strings
 - [ ] Improve error reporting (with line and column tracking)
 
 ### Parser

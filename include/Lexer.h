@@ -1,6 +1,7 @@
 #ifndef Faith_lexer_h
 #define Faith_lexer_h
 
+#include <Logger.h>
 #include <cctype>
 #include <cstdint>
 #include <string>
@@ -10,7 +11,7 @@
 
 #define ERROR(line, msg)                                                       \
   {                                                                            \
-    std::cout << "[Line: " << line << "] Error: " << msg << std::endl;         \
+    Logger::fmtLog(LogLevel::Error, msg, line);                                \
     std::exit(1);                                                              \
   }
 
@@ -77,6 +78,7 @@ enum class TokenType {
   // LITERALS
   // ===========================================================================
   Identifier,    // [a-zA-Z_][a-zA-Z0-9_]*
+  CharLiteral,   // ''
   StringLiteral, // "..."
   IntLiteral,    // 123
   FloatLiteral,  // 12.34
@@ -158,14 +160,18 @@ private:
   Token scanToken();
   Token scanWord();
   Token scanNumber(char firstDigit);
+  Token scanStringLiteral();
+  Token scanCharLiteral();
+  void skipLineComment();
+  void skipMultilineComment();
 
   bool isAtEnd() const;
-  char consume();
+  char advance();
   char peek() const;
 
   char peekNext();
   bool match(char expected);
-  void skipLineComment();
+
   Token makeToken(TokenType type);
   Token errorToken(const char *msg);
 
