@@ -105,7 +105,7 @@ Faith/
 
 ## 🧰 Build Instructions
 
-Faith is written in **C++20** and built with **CMake**.
+Faith is written in **C++23** and built with **CMake**.
 
 ```bash
 # Clone repo
@@ -187,4 +187,5 @@ Not yet ready for public use or contribution.
 ## 🪶 Author
 
 **Akshat Dighade**
+ 
 Compiler Design, Systems Programming, and Language Engineering Enthusiast
