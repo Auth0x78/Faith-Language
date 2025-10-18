@@ -1,0 +1,85 @@
+# ============================================================
+# C++ / CMake Project .gitignore
+# ============================================================
+
+# Build directories
+/build/
+/build-*/
+/out/
+/bin/
+/lib/
+/dist/
+
+# CMake generated files
+CMakeCache.txt
+CMakeFiles/
+CMakeScripts/
+Testing/
+Makefile
+cmake_install.cmake
+install_manifest.txt
+compile_commands.json
+CTestTestfile.cmake
+
+# Executables and binaries
+*.exe
+*.out
+*.app
+*.dll
+*.so
+*.dylib
+*.obj
+*.o
+*.a
+*.lib
+*.pdb
+
+# Logs and temporary files
+*.log
+*.tmp
+*.bak
+*.swp
+*.swo
+
+# IDE / Editor files
+# ------------------------------------------------------------
+# Visual Studio
+.vs/
+*.sln
+*.vcxproj*
+*.user
+
+# Visual Studio Code
+.vscode/
+
+# CLion / JetBrains IDEs
+.idea/
+
+# Xcode
+*.xcworkspace
+*.xcodeproj/
+DerivedData/
+
+# Mac / Windows / Linux system files
+# ------------------------------------------------------------
+.DS_Store
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+.Trash-*
+
+# Backup / cache files
+*.old
+*.orig
+*.cache
+*.dmp
+*.stackdump
+
+# Resource / asset temp
+/resources/cache/
+*.tmp.*
+
+# ============================================================
+# Custom user notes
+# ============================================================
+secret.txt
