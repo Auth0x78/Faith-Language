@@ -42,8 +42,8 @@
 (*  TYPE SYSTEM                 *)
 (* ---------------------------- *)
 
-<type> ::= [ "?=" ] <base_type> [ <type_suffix> ]
-(* Type specifier, may be prefixed by '?=' to indicate error-returning type. *)
+<type> ::= "!"? <base_type> [ <type_suffix> ]
+(* Type specifier, may be prefixed by '!' to indicate error-returning type. *)
 
 <base_type> ::= <primitive_type>
               | <struct_type>
