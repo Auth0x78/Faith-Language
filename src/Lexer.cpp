@@ -29,11 +29,19 @@ static const std::unordered_map<std::string_view, TokenType> s_keywordTable = {
     {"false", TokenType::Kw_False},
     {"null", TokenType::Kw_Null},
 
+    {"u8", TokenType::Kw_U8},
     {"i8", TokenType::Kw_I8},
     {"char", TokenType::Kw_Char},
+
+    {"u16", TokenType::Kw_U16},
     {"i16", TokenType::Kw_I16},
+
+    {"u32", TokenType::Kw_U32},
     {"i32", TokenType::Kw_I32},
+
+    {"u64", TokenType::Kw_U64},
     {"i64", TokenType::Kw_I64},
+
     {"f32", TokenType::Kw_F32},
     {"f64", TokenType::Kw_F64},
     {"bool", TokenType::Kw_Bool},
@@ -61,24 +69,24 @@ static bool isHexDigit(char c) {
 }
 
 Lexer::Lexer(std::string_view src)
-    : source(src), start(0), current(0), line(1) {
-  tokens.reserve(MIN_TOKENS_SIZE);
+    : m_source(src), m_start(0), m_current(0), m_line(1) {
+  m_tokens.reserve(MIN_TOKENS_SIZE);
 }
 
 std::vector<Token> &Lexer::scanTokens() {
 
   while (!isAtEnd()) {
-    start = current;
+    m_start = m_current;
 
     Token token = scanToken();
     if (token.type != TT::EndOfFile && token.type != TT::Ignore)
-      tokens.push_back(token);
+      m_tokens.push_back(token);
   }
 
   // Add EOF token add the end of parsing of file
-  tokens.push_back(Token(TT::EndOfFile, "$", line));
-  tokens.shrink_to_fit();
-  return tokens;
+  m_tokens.push_back(Token(TT::EndOfFile, "$", m_line));
+  m_tokens.shrink_to_fit();
+  return m_tokens;
 }
 
 Token Lexer::scanToken() {
@@ -170,6 +178,8 @@ Token Lexer::scanToken() {
   case '=':
     if (match('='))
       return makeToken(TT::EqualEqual);
+    else if (match('>'))
+      return makeToken(TT::FatArrow);
 
     return makeToken(TT::Equal);
   case '<':
@@ -196,7 +206,7 @@ Token Lexer::scanToken() {
     // ignore whitespace
     return ignoreToken;
   case '\n':
-    line++;
+    m_line++;
     return ignoreToken;
     break;
   default:
@@ -214,7 +224,7 @@ Token Lexer::scanToken() {
 Token Lexer::scanWord() {
   while (!isAtEnd() && (std::isalnum(peek()) || peek() == '_'))
     advance();
-  std::string_view word(source.data() + start, current - start);
+  std::string_view word(m_source.data() + m_start, m_current - m_start);
 
   // Check if it is a keyword or identifier
   auto it = s_keywordTable.find(word);
@@ -304,7 +314,7 @@ Token Lexer::scanStringLiteral() {
         handleEscapeSequence();
       } else if (peek() == '\n') {
         // Raw strings allow newlines.
-        line++;
+        m_line++;
         advance();
       } else {
         // Any other character.
@@ -397,23 +407,23 @@ Token Lexer::scanCharLiteral() {
 }
 
 bool Lexer::isAtEnd() const {
-  return current >= source.size() || source[current] == '\0';
+  return m_current >= m_source.size() || m_source[m_current] == '\0';
 }
 
-char Lexer::advance() { return source[current++]; }
+char Lexer::advance() { return m_source[m_current++]; }
 
-char Lexer::peek() const { return source[current]; }
+char Lexer::peek() const { return m_source[m_current]; }
 
 char Lexer::peekNext() {
-  if (current + 1 >= source.size() || source[current + 1] == '\0')
+  if (m_current + 1 >= m_source.size() || m_source[m_current + 1] == '\0')
     return '\0';
-  return source[current + 1];
+  return m_source[m_current + 1];
 }
 
 bool Lexer::match(char expected) {
-  if (isAtEnd() || source[current] != expected)
+  if (isAtEnd() || m_source[m_current] != expected)
     return false;
-  current++;
+  m_current++;
   return true;
 }
 
@@ -428,7 +438,7 @@ Token Lexer::skipMultilineComment() {
     if (peek() == '*' && peekNext() == '/')
       break;
     if (peek() == '\n')
-      line++;
+      m_line++;
     advance();
   }
 
@@ -446,12 +456,13 @@ Token Lexer::skipMultilineComment() {
 }
 
 Token Lexer::makeToken(TokenType type) {
-  Token tk(type, std::string_view(source.data() + start, current - start),
-           line);
+  Token tk(type,
+           std::string_view(m_source.data() + m_start, m_current - m_start),
+           m_line);
   return tk;
 }
 
 Token Lexer::errorToken(const char *msg) {
-  Token etk(TT::Error, msg, line);
+  Token etk(TT::Error, msg, m_line);
   return etk;
 }

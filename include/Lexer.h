@@ -71,7 +71,8 @@ enum class TokenType {
   ShiftLeft,  // <<
   ShiftRight, // >>
 
-  Arrow, // ->
+  Arrow,    // ->
+  FatArrow, // =>
   //(used in function return type syntax)
   //(used in member access of struct)
   // ===========================================================================
@@ -118,6 +119,10 @@ enum class TokenType {
   // ===========================================================================
   // BUILTIN TYPES
   // ===========================================================================
+  Kw_U8,
+  Kw_U16,
+  Kw_U32,
+  Kw_U64,
   Kw_I8,
   Kw_I16,
   Kw_I32,
@@ -176,10 +181,10 @@ private:
   Token makeToken(TokenType type);
   Token errorToken(const char *msg);
 
-  std::vector<Token> tokens;
-  std::string_view source;
-  size_t start;
-  size_t current;
-  int64_t line;
+  std::vector<Token> m_tokens;
+  std::string_view m_source;
+  size_t m_start;
+  size_t m_current;
+  int64_t m_line;
 };
 #endif
