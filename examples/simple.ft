@@ -1,9 +1,16 @@
+// Define a struct called point which will store 2 coordinates X and Y
 struct Point {
     x: i32;
     y: i32;
 };
 
-func distance(p1: *Point, p2: *Point) -> i32 {
+/*
+* Function to calculate the distance between two points
+* @param: p1 - pointer to first point
+* @param: p2 - pointer to second point
+* @return: squared distance between both points as i32
+*/
+func squared_distance(p1: *Point, p2: *Point) -> i32 {
     let dx: i32 = p2->x - p1->x;
     let dy: i32 = p2->y - p1->y;
     return (dx * dx + dy * dy);

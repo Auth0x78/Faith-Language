@@ -27,9 +27,12 @@ enum class TokenType {
   RightSqBracket, // ]
   Comma,          // ,
   Dot,            // .
+  RangeDot,       // ..
+  Ellipsis,       // ...
   Colon,          // :
   Semicolon,      // ;
   Question,       // ?
+  Underscore,     // _
 
   Plus,    // +
   Minus,   // -
