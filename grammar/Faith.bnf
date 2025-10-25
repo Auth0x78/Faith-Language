@@ -52,7 +52,7 @@
 <typealias_decl> ::= "typealias" <identifier> "=" <type> ";"
 (* Type alias declaration. *)
 
-<type> ::= [ "!" ] <base_type> [ <type_suffix> ]
+<type> ::= [ "!" ] <base_type> { <type_suffix> }
 (* Type specifier, may be prefixed by '?' to indicate error-returning type. *)
 
 <base_type> ::= <primitive_type>
@@ -62,17 +62,24 @@
               | "&" <base_type>    (* reference type, e.g., &i32 *)
 (* Base type component, before array or composite suffixes. *)
 
-<primitive_type> ::= "i8" | "i16" | "i32" | "i64"
+<primitive_type> ::= "u8" | "u16" | "u32" | "u64" 
+                   | "i8" | "i16" | "i32" | "i64"
                    | "f32" | "f64"
                    | "char" | "bool" | "void"
 (* Primitive types — integer, floating-point, char, bool, void. *)
 
-<func_ptr_type> ::= "*" "func" "(" [ <param_list> ] ")" "->" <type>
+<func_ptr_type> ::= "*" "func" "(" [ <param_type_list> ] ")" "->" <type>
+
+<param_type_list> ::= <type> { "," <type> }
+(* Function parameters — name and type pairs. *)
+
 (* Function pointer type — e.g., *func(i32, i32) -> i32 *)
+
+<struct_type> ::= <identifier>
+(* A struct type is its name, e.g., Point or Node. *)
 
 <type_suffix> ::= "[]"
 (* Array type — e.g., i32[] or MyStruct[] *)
-
 
 (* ---------------------------- *)
 (* STRUCTS                     *)
@@ -91,8 +98,6 @@
 <struct_init_field> ::= "." <identifier> "=" <expr>
 (* Struct literal — e.g., Point { .x = 10, .y = 20 }. *)
 
-<struct_type> ::= <identifier>
-(* A struct type is its name, e.g., Point or Node. *)
 
 
 (* ---------------------------- *)
@@ -127,7 +132,7 @@
 <while_stmt> ::= "while" [ "(" <expr> ")" ] <compound_stmt>
 (* While loop. *)
 
-<for_stmt> ::= "for" [ "(" <for_init>? ";" <expr>? ";" <expr>? ")" ] <compound_stmt>
+<for_stmt> ::= "for" "(" <for_init>? ";" <expr>? ";" <expr>? ")" <compound_stmt>
 <for_init> ::= <var_decl> | <expr>
 (* For loop (C-style). *)
 
@@ -149,10 +154,10 @@
 (* ---------------------------- *)
 
 <switch_stmt> ::= "switch" "(" <expr> ")" "{" { <case_block> } [ "default" ":" { <stmt> } ] "}"
-<case_block>  ::= "case" <const_expr> "=>" <compound_stmt>
+<case_block>  ::= "case" <const_expr> "=>" { <stmt> }
 (* C-style switch — case values must be compile-time constants. *)
 
-<match_stmt> ::= "match" <expr> "{" { <pattern_list> "=>" <compound_stmt> } "}"
+<match_stmt> ::= "match" "(" <expr> ")" "{" { <pattern_list> "=>" <compound_stmt> } "}"
 <pattern_list> ::= <pattern> { "|" <pattern> }
 <pattern> ::= <const_expr> | "_"
 (* Rust-style pattern matching. *)
