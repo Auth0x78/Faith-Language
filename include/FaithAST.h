@@ -3,9 +3,10 @@
 
 #include <memory>
 #include <optional>
-#include <string>
 #include <variant>
 #include <vector>
+
+#include "Lexer.h"
 
 namespace Faith {
 
@@ -17,7 +18,7 @@ class TokenView {
 public:
   // Token View Constructors
   TokenView() : m_token(nullptr) {}
-  explicit TokenView(const Token *token) : m_token(token) {}
+  TokenView(const Token *token) : m_token(token) {}
 
   TokenView(const TokenView &other) = default;
 
@@ -50,6 +51,8 @@ public:
 
   // Checks if the view is non-null (i.e., it points to a token
   explicit operator bool() const { return m_token != nullptr; }
+
+  bool has_value() const { return m_token != nullptr; }
 
 private:
   const Token *m_token;
@@ -122,17 +125,14 @@ class WildcardPattern;
 
 // Declarations
 class Program;
-class FuncDef;
 class FuncDecl;
-class ExternFuncDecl;
 class VarDecl; // This will inherit from Stmt and Decl
 class StructDecl;
 class StructField;
-class StructForwardDecl;
 class TypealiasDecl;
 
 // =======================================================
-// TYPE ALIASES (as requested)
+// TYPE ALIASES
 // =======================================================
 
 template <typename T> using UPtr = std::unique_ptr<T>;
@@ -140,14 +140,13 @@ template <typename T> using UPtr = std::unique_ptr<T>;
 template <typename T> using Vec = std::vector<T>;
 
 // =======================================================
-// ENUMS FOR OPERATORS (as requested)
+// ENUMS FOR OPERATORS
 // =======================================================
 
 enum class LinkageSpecifier {
   NONE,
   STATIC,
   EXTERN,
-  EXTERN_C,
 };
 
 enum class PrimitiveTypeKind {
@@ -221,13 +220,10 @@ public:
   virtual void visit(Program *node) = 0;
 
   // Decls
-  virtual void visit(FuncDef *node) = 0;
   virtual void visit(FuncDecl *node) = 0;
-  virtual void visit(ExternFuncDecl *node) = 0;
   virtual void visit(VarDecl *node) = 0;
   virtual void visit(StructDecl *node) = 0;
   virtual void visit(StructField *node) = 0;
-  virtual void visit(StructForwardDecl *node) = 0;
   virtual void visit(TypealiasDecl *node) = 0;
   virtual void visit(Param *node) = 0;
 
@@ -309,7 +305,10 @@ class Program final : public Node {
 public:
   Vec<UPtr<Decl>> declarations;
 
+  Program() = default;
+
   Program(Vec<UPtr<Decl>> decls) : declarations(std::move(decls)) {}
+
   void accept(ASTVisitor &visitor) override { visitor.visit(this); }
 };
 
@@ -320,6 +319,7 @@ public:
 
   Param(TokenView name, UPtr<TypeSpec> type)
       : name(name), type(std::move(type)) {}
+
   void accept(ASTVisitor &visitor) override { visitor.visit(this); }
 };
 
@@ -327,42 +327,33 @@ public:
 // DECLARATIONS
 // =======================================================
 
-class FuncDef final : public Decl {
+class FuncDecl final : public Decl {
 public:
+  // Linkage specifier for the function decl
+  LinkageSpecifier linkageSpec;
+
   TokenView funcTok; // The 'func' keyword
-  bool isStatic;
   TokenView name;
   Vec<UPtr<Param>> params;
   UPtr<TypeSpec> returnType; // nullptr if void
+  // The function body.
+  // NOTE: A nullptr 'body' implies a function declaration without a definition.
   UPtr<CompoundStmt> body;
 
-  FuncDef(TokenView funcTok, bool isStatic, TokenView name,
-          Vec<UPtr<Param>> params, UPtr<TypeSpec> retType,
-          UPtr<CompoundStmt> body)
-      : funcTok(funcTok), isStatic(isStatic), name(name),
+  FuncDecl(LinkageSpecifier linkage, TokenView funcTok, TokenView name,
+           Vec<UPtr<Param>> params, UPtr<TypeSpec> retType,
+           UPtr<CompoundStmt> body)
+      : linkageSpec(linkage), funcTok(funcTok), name(name),
         params(std::move(params)), returnType(std::move(retType)),
         body(std::move(body)) {}
 
-  void accept(ASTVisitor &visitor) override { visitor.visit(this); }
-};
-
-class FuncDecl final : public Decl {
-public:
-  LinkageSpecifier linkageSpec;
-  TokenView name;
-  Vec<UPtr<Param>> params;
-  UPtr<TypeSpec> returnType; // nullptr if void
-
-  FuncDecl(LinkageSpecifier linkage, TokenView name, Vec<UPtr<Param>> params,
-           UPtr<TypeSpec> retType)
-      : linkageSpec(linkage), name(name), params(std::move(params)),
-        returnType(std::move(retType)) {}
-
+  // --- Visitor Pattern ---
   void accept(ASTVisitor &visitor) override { visitor.visit(this); }
 };
 
 class VarDecl final : public Decl, public Stmt {
 public:
+  bool isGlobal;
   bool isConst;
   TokenView name;
   UPtr<TypeSpec> type;
@@ -387,22 +378,15 @@ public:
   void accept(ASTVisitor &visitor) override { visitor.visit(this); }
 };
 
+using StructBody = Vec<UPtr<StructField>>;
+
 class StructDecl final : public Decl {
 public:
   TokenView structName;
-  Vec<UPtr<StructField>> fields;
+  UPtr<StructBody> optBody;
 
-  StructDecl(TokenView name, Vec<UPtr<StructField>> fields)
-      : structName(name), fields(std::move(fields)) {}
-
-  void accept(ASTVisitor &visitor) override { visitor.visit(this); }
-};
-
-class StructForwardDecl final : public Decl {
-public:
-  TokenView structName;
-
-  StructForwardDecl(TokenView name) : structName(name) {}
+  StructDecl(TokenView name, UPtr<StructBody> body)
+      : structName(name), optBody(std::move(body)) {}
 
   void accept(ASTVisitor &visitor) override { visitor.visit(this); }
 };
@@ -425,6 +409,7 @@ public:
 class BaseType : public TypeNode {};
 
 class PrimitiveType final : public BaseType {
+public:
   PrimitiveTypeKind kind;
   TokenView typeToken;
 
@@ -434,6 +419,7 @@ class PrimitiveType final : public BaseType {
 };
 
 class StructType final : public BaseType {
+public:
   TokenView name;
 
   StructType(TokenView name) : name(name) {}
@@ -442,12 +428,13 @@ class StructType final : public BaseType {
 };
 
 class FuncPtrType final : public BaseType {
-  TokenView funcTok;
-  Vec<UPtr<TypeSpec>> paramsTy;
+public:
+  TokenView starTok;
+  UPtr<Vec<UPtr<TypeSpec>>> paramsTy;
   UPtr<TypeSpec> returnType;
 
-  FuncPtrType(TokenView tok, Vec<UPtr<TypeSpec>> p, UPtr<TypeSpec> ret)
-      : funcTok(tok), paramsTy(std::move(p)), returnType(std::move(ret)) {}
+  FuncPtrType(TokenView ptok, UPtr<Vec<UPtr<TypeSpec>>> p, UPtr<TypeSpec> ret)
+      : starTok(ptok), paramsTy(std::move(p)), returnType(std::move(ret)) {}
 
   void accept(ASTVisitor &visitor) override { visitor.visit(this); }
 };
@@ -455,9 +442,9 @@ class FuncPtrType final : public BaseType {
 class PtrType final : public BaseType {
 public:
   TokenView ptrTok;
-  UPtr<TypeSpec> pointedType;
+  UPtr<BaseType> pointedType;
 
-  PtrType(TokenView p, UPtr<TypeSpec> pType)
+  PtrType(TokenView p, UPtr<BaseType> pType)
       : ptrTok(p), pointedType(std::move(pType)) {}
 
   void accept(ASTVisitor &visitor) override { visitor.visit(this); }
@@ -470,6 +457,8 @@ public:
 
   RefType(TokenView amp, UPtr<BaseType> ref)
       : ampersandTok(amp), referencedType(std::move(ref)) {}
+
+  void accept(ASTVisitor &visitor) override { visitor.visit(this); }
 };
 
 class TypeSpec final : public TypeNode {
@@ -530,7 +519,7 @@ public:
   UPtr<CompoundStmt> thenBranch;
   UPtr<CompoundStmt> elseBranch; // nullptr if no else branch
 
-  IfStmt(TokenView ifTok, UPtr<Expr> cond, UPtr<Stmt> thenB,
+  IfStmt(TokenView ifTok, UPtr<Expr> cond, UPtr<CompoundStmt> thenB,
          UPtr<CompoundStmt> elseB)
       : ifTok(ifTok), condition(std::move(cond)), thenBranch(std::move(thenB)),
         elseBranch(std::move(elseB)) {}

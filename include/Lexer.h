@@ -19,20 +19,20 @@ enum class TokenType {
   // ===========================================================================
   // SINGLE-CHARACTER SYMBOLS
   // ===========================================================================
-  LeftParen,      // (
-  RightParen,     // )
-  LeftCBracket,   // {
-  RightCBracket,  // }
-  LeftSqBracket,  // [
-  RightSqBracket, // ]
-  Comma,          // ,
-  Dot,            // .
-  RangeDot,       // ..
-  Ellipsis,       // ...
-  Colon,          // :
-  Semicolon,      // ;
-  Question,       // ?
-  Underscore,     // _
+  LeftParen,    // (
+  RightParen,   // )
+  LeftBrace,    // {
+  RightBrace,   // }
+  LeftBracket,  // [
+  RightBracket, // ]
+  Comma,        // ,
+  Dot,          // .
+  RangeDot,     // ..
+  Ellipsis,     // ...
+  Colon,        // :
+  Semicolon,    // ;
+  Question,     // ?
+  Underscore,   // _
 
   Plus,    // +
   Minus,   // -
@@ -107,7 +107,7 @@ enum class TokenType {
   Kw_Extern,    // extern
   Kw_Static,    // static
   Kw_Struct,    // struct
-  Kw_typealias, // typealias
+  Kw_Typealias, // typealias
   Kw_Defer,     // defer
   Kw_Break,     // break
   Kw_Continue,  // continue

@@ -20,7 +20,7 @@ static const std::unordered_map<std::string_view, TokenType> s_keywordTable = {
     {"extern", TokenType::Kw_Extern},
     {"struct", TokenType::Kw_Struct},
     {"static", TokenType::Kw_Static},
-    {"typealias", TokenType::Kw_typealias},
+    {"typealias", TokenType::Kw_Typealias},
     {"defer", TokenType::Kw_Defer},
     {"break", TokenType::Kw_Break},
     {"continue", TokenType::Kw_Continue},
@@ -97,17 +97,23 @@ Token Lexer::scanToken() {
   case ')':
     return makeToken(TT::RightParen);
   case '{':
-    return makeToken(TT::LeftCBracket);
+    return makeToken(TT::LeftBrace);
   case '}':
-    return makeToken(TT::RightCBracket);
+    return makeToken(TT::RightBrace);
   case '[':
-    return makeToken(TT::LeftSqBracket);
+    return makeToken(TT::LeftBracket);
   case ']':
-    return makeToken(TT::RightSqBracket);
+    return makeToken(TT::RightBracket);
   case ',':
     return makeToken(TT::Comma);
   case '.':
-    return makeToken(TT::Dot);
+    if (match('.')) {
+      if (match('.'))
+        return makeToken(TT::Ellipsis);
+
+      return makeToken(TT::RangeDot);
+    } else
+      return makeToken(TT::Dot);
   case ':':
     return makeToken(TT::Colon);
   case ';':
@@ -196,6 +202,8 @@ Token Lexer::scanToken() {
       return makeToken(TT::ShiftRight);
 
     return makeToken(TT::Greater);
+  case '_':
+    return makeToken(TT::Underscore);
   case '"':
     return scanStringLiteral();
   case '\'':
