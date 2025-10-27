@@ -1,5 +1,5 @@
-#ifndef Faith_lexer_h
-#define Faith_lexer_h
+#ifndef FAITH_LEXER_H
+#define FAITH_LEXER_H
 
 #include <Logger.h>
 #include <cctype>

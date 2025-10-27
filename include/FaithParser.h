@@ -1,4 +1,6 @@
-#pragma once
+#ifndef FAITH_PARSER_H
+#define FAITH_PARSER_H
+
 #include <memory>
 #include <optional>
 #include <stack>
@@ -95,3 +97,5 @@ private:
   std::stack<parseError> m_errorStack;
   uint32_t m_errNum;
 };
+
+#endif

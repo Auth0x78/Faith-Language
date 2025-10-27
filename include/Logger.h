@@ -1,4 +1,6 @@
-#pragma once
+#ifndef LOGGER_H
+#define LOGGER_H
+
 #include <cstdarg>
 #include <iostream>
 #include <string>
@@ -31,3 +33,5 @@ private:
 private:
   static LogLevel _level;
 };
+
+#endif
