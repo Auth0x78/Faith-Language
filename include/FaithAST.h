@@ -126,6 +126,9 @@ class WildcardPattern;
 // Declarations
 class Program;
 class FuncDecl;
+class ExternDecl;
+class StaticDef;
+class FuncDef;
 class VarDecl; // This will inherit from Stmt and Decl
 class StructDecl;
 class StructField;
@@ -139,17 +142,13 @@ template <typename T> using UPtr = std::unique_ptr<T>;
 
 template <typename T> using Vec = std::vector<T>;
 
-using paramsTypeVec = std::vector<std::unique_ptr<Faith::TypeSpec>>;
+using paramsTypeVec = Vec<UPtr<Faith::TypeSpec>>;
+
+using paramsList = Vec<UPtr<Param>>;
 
 // =======================================================
 // ENUMS FOR OPERATORS
 // =======================================================
-
-enum class LinkageSpecifier {
-  NONE,
-  STATIC,
-  EXTERN,
-};
 
 enum class PrimitiveTypeKind {
   U8,
@@ -222,6 +221,9 @@ public:
   virtual void visit(Program *node) = 0;
 
   // Decls
+  virtual void visit(FuncDef *node) = 0;
+  virtual void visit(StaticDef *node) = 0;
+  virtual void visit(ExternDecl *node) = 0;
   virtual void visit(FuncDecl *node) = 0;
   virtual void visit(VarDecl *node) = 0;
   virtual void visit(StructDecl *node) = 0;
@@ -328,26 +330,60 @@ public:
 // =======================================================
 // DECLARATIONS
 // =======================================================
-
-class FuncDecl final : public Decl {
+class FuncDecl : public Decl {
 public:
-  // Linkage specifier for the function decl
-  LinkageSpecifier linkageSpec;
-
   TokenView funcTok; // The 'func' keyword
   TokenView name;
-  Vec<UPtr<Param>> params;
+  UPtr<Vec<UPtr<Param>>> params;
   UPtr<TypeSpec> returnType; // nullptr if void
-  // The function body.
-  // NOTE: A nullptr 'body' implies a function declaration without a definition.
+
+  FuncDecl(TokenView funcTok, TokenView name, UPtr<Vec<UPtr<Param>>> params,
+           UPtr<TypeSpec> retType)
+      : funcTok(funcTok), name(name), params(std::move(params)),
+        returnType(std::move(retType)) {}
+
+  // Virtual Destructor
+  virtual ~FuncDecl() = default;
+
+  // --- Visitor Pattern ---
+  void accept(ASTVisitor &visitor) override { visitor.visit(this); }
+};
+
+class FuncDef final : public FuncDecl {
+public:
   UPtr<CompoundStmt> body;
 
-  FuncDecl(LinkageSpecifier linkage, TokenView funcTok, TokenView name,
-           Vec<UPtr<Param>> params, UPtr<TypeSpec> retType,
-           UPtr<CompoundStmt> body)
-      : linkageSpec(linkage), funcTok(funcTok), name(name),
-        params(std::move(params)), returnType(std::move(retType)),
-        body(std::move(body)) {}
+  FuncDef(TokenView funcTok, TokenView name, UPtr<Vec<UPtr<Param>>> params,
+          UPtr<TypeSpec> retType, UPtr<CompoundStmt> b)
+      // Here, we explicitly call the base class (FuncDecl) constructor
+      : FuncDecl(funcTok, name, std::move(params), std::move(retType)),
+        body(std::move(b)) {}
+
+  // --- Visitor Pattern ---
+  void accept(ASTVisitor &visitor) override { visitor.visit(this); }
+};
+
+class ExternDecl final : public Decl {
+public:
+  TokenView externTok;
+  TokenView StringLiteral;
+  UPtr<FuncDecl> funcDecl;
+
+  ExternDecl(TokenView eTok, TokenView eStr, UPtr<FuncDecl> fdecl)
+      : externTok(eTok), StringLiteral(std::move(eStr)),
+        funcDecl(std::move(fdecl)) {}
+
+  // --- Visitor Pattern ---
+  void accept(ASTVisitor &visitor) override { visitor.visit(this); }
+};
+
+class StaticDef final : public Decl {
+public:
+  TokenView staticTok;
+  UPtr<FuncDecl> funcDef;
+
+  StaticDef(TokenView sTok, UPtr<FuncDecl> fdecl)
+      : staticTok(sTok), funcDef(std::move(fdecl)) {}
 
   // --- Visitor Pattern ---
   void accept(ASTVisitor &visitor) override { visitor.visit(this); }

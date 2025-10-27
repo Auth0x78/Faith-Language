@@ -13,6 +13,7 @@
                 | <func_decl>
                 | <var_decl>
                 | <extern_func_decl>
+                | <static_func_def>
                 | <struct_decl>
                 | <struct_forward_decl>
                 | <typealias_decl>
@@ -26,10 +27,13 @@
 <extern_func_decl> ::= "extern" [ <string_literal> ] <func_decl>
 (* An external function declaration (must end in ';'). *)
 
-<func_def> ::= "static"? "func" <identifier> "(" [ <param_list> ] ")" [ "->" <type> ] <compound_stmt>
+<static_func_def> ::= "static" <func_def>
+(* An static function defination (must end with body). *)
+
+<func_def> ::= <func_decl> (';' | <compound_stmt>)
 (* A function definition has a statement block body. *)
 
-<func_decl> ::= "static"? "func" <identifier> "(" [ <param_list> ] ")" [ "->" <type> ] ";"
+<func_decl> ::= "func" <identifier> "(" [ <param_list> ] ")" [ "->" <type> ]
 (* A function declaration (or prototype) ends with a semicolon. *)
 
 <param_list> ::= <param> { "," <param> }
