@@ -39,8 +39,16 @@ private:
   // Parser functions
   [[nodiscard]] std::unique_ptr<Faith::Decl> parseDecl();
 
+  [[nodiscard]] std::unique_ptr<Faith::ExternDecl> parseExternFuncDecl();
+
+  [[nodiscard]] std::unique_ptr<Faith::StaticDef> parseStaticFuncDecl();
+
   [[nodiscard]] std::unique_ptr<Faith::FuncDecl>
-  parseFuncDecl(Faith::LinkageSpecifier linkage);
+  parseFuncDecl(bool expectOnlyDecl);
+
+  [[nodiscard]] std::unique_ptr<Faith::paramsList> parseParamsList();
+
+  [[nodiscard]] std::unique_ptr<Faith::Param> parseParam();
 
   [[nodiscard]] std::unique_ptr<Faith::VarDecl>
   parseVarDecl(bool isConst = false, bool isGlobal = false);
@@ -68,9 +76,8 @@ private:
 
   // Creates and pushes a error onto stack
   // Returns the index of error message
-  uint32_t createError(Faith::TokenView loc, std::string &&errMessage);
-
   uint32_t createError(std::string &&errMessage);
+  uint32_t createGlobalError(std::string &&errMessage);
 
   // Prints error to logger
   void printErrors();
