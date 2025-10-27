@@ -14,7 +14,7 @@ enum class FileError {
 };
 
 // Reads a file into a std::string if it's within the size limit.
-static std::expected<std::string, FileError>
+std::expected<std::string, FileError>
 read_file_to_string(const std::filesystem::path &path,
                     std::uintmax_t max_size = 128LL * 1024 * 1024) {
   // 1. Check file size first to avoid allocating huge amounts of memory.
