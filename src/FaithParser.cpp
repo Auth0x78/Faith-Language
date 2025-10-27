@@ -311,7 +311,7 @@ std::unique_ptr<Faith::FuncPtrType> FaithParser::parseFuncPtrType() {
 
   // Check if the parameter list is empty (i.e., we see ')')
 
-  std::unique_ptr<paramsTypeVec> paramsTy = nullptr;
+  std::unique_ptr<Faith::paramsTypeVec> paramsTy = nullptr;
   if (peek()->type != tType::RightParen) {
     // If not ')' then it must be start of list
     paramsTy = std::move(parseParamTypeList());
@@ -347,10 +347,25 @@ std::unique_ptr<Faith::FuncPtrType> FaithParser::parseFuncPtrType() {
                                               std::move(retType));
 }
 
-std::unique_ptr<paramsTypeVec> FaithParser::parseParamTypeList() {
-  std::unique_ptr paramsTyList = std::make_unique<paramsTypeVec>();
+std::unique_ptr<Faith::paramsTypeVec> FaithParser::parseParamTypeList() {
+  auto paramsTyList = std::make_unique<Faith::paramsTypeVec>();
+  
+  // Parse the first <type> param rule
+  auto type0 = parseTypeSpec();
+  if(type0 == nullptr)
+    return nullptr;
+  paramsTyList->push_back(std::move(type0));
 
-  // Todo: Implement Param Type list parsing
+  // Parse the all the "," <type> till we either reach end
+  // Or we till we dont have any more "," to match
+  while(match(tType::Comma)) {
+    auto typeN = parseTypeSpec();
+    
+    if(typeN == nullptr) // Todo: Error recovery till next sync token
+      return nullptr;
+      
+    paramsTyList->push_back(std::move(typeN));
+  }
 
   return paramsTyList;
 }

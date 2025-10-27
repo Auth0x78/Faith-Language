@@ -11,8 +11,6 @@
 #include "Lexer.h"
 #include "Logger.h"
 
-using paramsTypeVec = std::vector<std::unique_ptr<Faith::TypeSpec>>;
-
 // Error struct
 struct parseError {
   // Location of the token that triggered the error
@@ -62,7 +60,7 @@ private:
 
   [[nodiscard]] std::unique_ptr<Faith::FuncPtrType> parseFuncPtrType();
 
-  [[nodiscard]] std::unique_ptr<paramsTypeVec> parseParamTypeList();
+  [[nodiscard]] std::unique_ptr<Faith::paramsTypeVec> parseParamTypeList();
 
   [[nodiscard]] std::unique_ptr<Faith::PtrType> parsePtrType();
 

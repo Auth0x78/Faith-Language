@@ -3,10 +3,12 @@
 
 #include "FileRead.h"
 #include "Lexer.h"
+#include "FaithParser.h"
 #include "Logger.h"
 
 // File buffer string, lifetime: Until Program ends
 static std::string file_buffer;
+static std::vector<Token> scannedTokens;
 
 int main() {
 
@@ -46,7 +48,11 @@ int main() {
 
   // Provide the file's content to Lexer for scanning
   Lexer lexer(content_view);
-  std::vector<Token> scannedTokens = std::move(lexer.scanTokens());
+  scannedTokens = std::move(lexer.scanTokens());
+  
+  // Generate Abstract Syntax Tree using the scanned tokens
+  FaithParser parser(scannedTokens);
+  std::unique_ptr<Faith::Program> astProgram = parser.parse();
 
   return 0;
 }
