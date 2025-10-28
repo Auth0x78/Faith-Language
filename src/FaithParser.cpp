@@ -171,11 +171,10 @@ FaithParser::parseFuncDecl(bool expectOnlyDecl) {
   std::unique_ptr<Faith::paramsList> paramsVec = nullptr;
   if (!isAtEnd() && peek()->type != TokenType::RightParen) {
     paramsVec = parseParamsList();
+
+    // TODO: Error Recovery
     if (paramsVec == nullptr)
       return nullptr;
-    else {
-      // TODO: Error Recovery
-    }
   }
 
   if (!match(TokenType::RightParen)) {
@@ -190,11 +189,9 @@ FaithParser::parseFuncDecl(bool expectOnlyDecl) {
   if (match(TokenType::Arrow)) {
     retType = parseTypeSpec();
 
+    // TODO: Error recovery
     if (retType == nullptr)
       return nullptr;
-    else {
-      // TODO: Error recovery
-    }
   }
 
   return std::make_unique<Faith::FuncDecl>(funcTok, ident, std::move(paramsVec),
@@ -219,7 +216,8 @@ std::unique_ptr<Faith::paramsList> FaithParser::parseParamsList() {
 
     auto paramN = parseParam();
 
-    if (paramN == nullptr) // TODO: Error recovery till next sync token
+    // TODO: Error recovery till next sync token
+    if (paramN == nullptr)
       return nullptr;
 
     paramlist->push_back(std::move(paramN));
@@ -361,9 +359,9 @@ std::unique_ptr<Faith::BaseType> FaithParser::parseBaseType() {
     return parsePrimitiveType(primTy::F64);
 
   case TokenType::Kw_Char:
-    return parsePrimitiveType(primTy::F64);
-  case TokenType::Kw_Bool:
     return parsePrimitiveType(primTy::CHAR);
+  case TokenType::Kw_Bool:
+    return parsePrimitiveType(primTy::BOOL);
   case TokenType::Kw_Void:
     return parsePrimitiveType(primTy::VOID);
   // Parse struct type
