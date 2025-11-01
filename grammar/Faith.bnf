@@ -99,6 +99,7 @@
 (* Forward declaration for recursive struct support. *)
 
 <struct_init> ::= <identifier> "{" [ <struct_init_field> { "," <struct_init_field> } ] "}"
+
 <struct_init_field> ::= "." <identifier> "=" <expr>
 (* Struct literal — e.g., Point { .x = 10, .y = 20 }. *)
 
@@ -214,7 +215,7 @@
 (* Multiplication, division, and modulo. *)
 
 <cast_expr> ::= <unary_expr>
-              | "(" <type> ")" <cast_expr>
+              | "cast" "<" <type> ">" "(" <expr> ")"
 
 <unary_expr> ::= ( "+" | "-" | "!" | "*" | "&" | "++" | "--" ) <unary_expr> 
         | <postfix_expr>
