@@ -129,11 +129,10 @@
 <expr_stmt> ::= [ <expr> ] ";"
 (* Expression followed by semicolon, e.g., function call or assignment. *)
 
-<if_stmt> ::= "if" [ "(" <expr> ")" ] <compound_stmt> [ "else" <compound_stmt> ]
+<if_stmt> ::= "if" "(" <expr> ")" <compound_stmt> [ "else" <compound_stmt> ]
 (* Conditional branch. Parentheses optional. *)
-(* Instead of compound stmt can also be just stmt with no curly braces *)
 
-<while_stmt> ::= "while" [ "(" <expr> ")" ] <compound_stmt>
+<while_stmt> ::= "while" "(" <expr> ")" <compound_stmt>
 (* While loop. *)
 
 <for_stmt> ::= "for" "(" <for_init>? ";" <expr>? ";" <expr>? ")" <compound_stmt>
@@ -157,8 +156,8 @@
 (* SWITCH / MATCH EXPRESSIONS  *)
 (* ---------------------------- *)
 
-<switch_stmt> ::= "switch" "(" <expr> ")" "{" { <case_block> } [ "default" ":" { <stmt> } ] "}"
-<case_block>  ::= "case" <const_expr> "=>" { <stmt> }
+<switch_stmt> ::= "switch" "(" <expr> ")" "{" { <case_block> } [ "default" "=>" <compound_stmt> ] "}"
+<case_block>  ::= "case" <const_expr> "=>" <compound_stmt>
 (* C-style switch — case values must be compile-time constants. *)
 
 <match_stmt> ::= "match" "(" <expr> ")" "{" { <pattern_list> "=>" <compound_stmt> } "}"
