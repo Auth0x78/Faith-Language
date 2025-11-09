@@ -24,6 +24,7 @@ static const std::unordered_map<std::string_view, TokenType> s_keywordTable = {
     {"defer", TokenType::Kw_Defer},
     {"break", TokenType::Kw_Break},
     {"continue", TokenType::Kw_Continue},
+    {"cast", TokenType::Kw_Cast},
 
     {"true", TokenType::Kw_True},
     {"false", TokenType::Kw_False},
@@ -119,8 +120,6 @@ Token Lexer::scanToken() {
   case ';':
     return makeToken(TT::Semicolon);
   case '?':
-    if (match('='))
-      return makeToken(TT::QuestionEqual);
     return makeToken(TT::Question);
   case '+':
     if (match('+'))

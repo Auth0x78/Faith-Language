@@ -85,7 +85,8 @@ class Param;
 
 // Expressions
 class Identifier;
-class NumberLiteral;
+class IntLiteral;
+class FloatLiteral;
 class StringLiteral;
 class CharLiteral;
 class BoolLiteral;
@@ -140,15 +141,20 @@ class TypealiasDecl;
 
 template <typename T> using UPtr = std::unique_ptr<T>;
 
+template <typename T> using UPtrNullable = std::unique_ptr<T>;
+
 template <typename T> using Vec = std::vector<T>;
 
 using paramsTypeVec = Vec<UPtr<Faith::TypeSpec>>;
 
 using paramsList = Vec<UPtr<Param>>;
 
+using argList = Vec<UPtr<Expr>>;
+
 // =======================================================
 // ENUMS FOR OPERATORS
 // =======================================================
+enum class IntLiteralFormat { Normal, Binary, Hex };
 
 enum class PrimitiveTypeKind {
   U8,
@@ -184,7 +190,7 @@ enum class BinaryOp {
   BitwiseOr,    // |
   BitwiseXor,   // ^
   BitwiseAnd,   // &
-  Equal,        // ==
+  Equality,     // ==
   NotEqual,     // !=
   Less,         // <
   LessEqual,    // <=
@@ -261,7 +267,8 @@ public:
 
   // Exprs
   virtual void visit(Identifier *node) = 0;
-  virtual void visit(NumberLiteral *node) = 0;
+  virtual void visit(IntLiteral *node) = 0;
+  virtual void visit(FloatLiteral *node) = 0;
   virtual void visit(StringLiteral *node) = 0;
   virtual void visit(CharLiteral *node) = 0;
   virtual void visit(BoolLiteral *node) = 0;
@@ -334,11 +341,13 @@ class FuncDecl : public Decl {
 public:
   TokenView funcTok; // The 'func' keyword
   TokenView name;
-  UPtr<Vec<UPtr<Param>>> params;
-  UPtr<TypeSpec> returnType; // nullptr if void
+  UPtrNullable<Vec<UPtr<Param>>> params;
+  UPtrNullable<TypeSpec> returnType;
+  // nullptr if no return type given, assume void
 
-  FuncDecl(TokenView funcTok, TokenView name, UPtr<Vec<UPtr<Param>>> params,
-           UPtr<TypeSpec> retType)
+  FuncDecl(TokenView funcTok, TokenView name,
+           UPtrNullable<Vec<UPtr<Param>>> params,
+           UPtrNullable<TypeSpec> retType)
       : funcTok(funcTok), name(name), params(std::move(params)),
         returnType(std::move(retType)) {}
 
@@ -353,8 +362,9 @@ class FuncDef final : public FuncDecl {
 public:
   UPtr<CompoundStmt> body;
 
-  FuncDef(TokenView funcTok, TokenView name, UPtr<Vec<UPtr<Param>>> params,
-          UPtr<TypeSpec> retType, UPtr<CompoundStmt> b)
+  FuncDef(TokenView funcTok, TokenView name,
+          UPtrNullable<Vec<UPtr<Param>>> params, UPtrNullable<TypeSpec> retType,
+          UPtr<CompoundStmt> b)
       // Here, we explicitly call the base class (FuncDecl) constructor
       : FuncDecl(funcTok, name, std::move(params), std::move(retType)),
         body(std::move(b)) {}
@@ -395,9 +405,11 @@ public:
   bool isConst;
   TokenView name;
   UPtr<TypeSpec> type;
-  UPtr<Expr> initializer; // nullptr if no initializer
+  // nullptr if no initializer
+  UPtrNullable<Expr> initializer;
 
-  VarDecl(bool isConst, TokenView name, UPtr<TypeSpec> type, UPtr<Expr> init)
+  VarDecl(bool isConst, TokenView name, UPtr<TypeSpec> type,
+          UPtrNullable<Expr> init)
       : isConst(isConst), name(name), type(std::move(type)),
         initializer(std::move(init)) {}
 
@@ -408,9 +420,10 @@ class StructField final : public Node {
 public:
   TokenView name;
   UPtr<TypeSpec> type;
-  UPtr<Expr> defaultValue; // nullptr if no default
+  // nullptr if no default
+  UPtrNullable<Expr> defaultValue;
 
-  StructField(TokenView name, UPtr<TypeSpec> type, UPtr<Expr> defVal)
+  StructField(TokenView name, UPtr<TypeSpec> type, UPtrNullable<Expr> defVal)
       : name(name), type(std::move(type)), defaultValue(std::move(defVal)) {}
 
   void accept(ASTVisitor &visitor) override { visitor.visit(this); }
@@ -421,10 +434,10 @@ using StructBody = Vec<UPtr<StructField>>;
 class StructDecl final : public Decl {
 public:
   TokenView structName;
-  UPtr<StructBody> optBody;
+  UPtrNullable<StructBody> body;
 
-  StructDecl(TokenView name, UPtr<StructBody> body)
-      : structName(name), optBody(std::move(body)) {}
+  StructDecl(TokenView name, UPtrNullable<StructBody> body)
+      : structName(name), body(std::move(body)) {}
 
   void accept(ASTVisitor &visitor) override { visitor.visit(this); }
 };
@@ -468,10 +481,11 @@ public:
 class FuncPtrType final : public BaseType {
 public:
   TokenView starTok;
-  UPtr<Vec<UPtr<TypeSpec>>> paramsTy;
+  UPtrNullable<Vec<UPtr<TypeSpec>>> paramsTy;
   UPtr<TypeSpec> returnType;
 
-  FuncPtrType(TokenView ptok, UPtr<Vec<UPtr<TypeSpec>>> p, UPtr<TypeSpec> ret)
+  FuncPtrType(TokenView ptok, UPtrNullable<Vec<UPtr<TypeSpec>>> p,
+              UPtr<TypeSpec> ret)
       : starTok(ptok), paramsTy(std::move(p)), returnType(std::move(ret)) {}
 
   void accept(ASTVisitor &visitor) override { visitor.visit(this); }
@@ -527,13 +541,15 @@ public:
 // STATEMENTS
 // =======================================================
 
+using StmtList = Vec<UPtr<Stmt>>;
+
 class CompoundStmt final : public Stmt {
 public:
   TokenView openBrace;
-  Vec<UPtr<Stmt>> statements;
+  UPtrNullable<StmtList> statements;
 
-  CompoundStmt(TokenView open, Vec<UPtr<Stmt>> stmts)
-      : openBrace(open), statements(std::move(stmts)) {}
+  CompoundStmt(TokenView open, UPtrNullable<Vec<UPtr<Stmt>>> &pStmtList)
+      : openBrace(open), statements(std::move(pStmtList)) {}
 
   void accept(ASTVisitor &visitor) override { visitor.visit(this); }
 };
@@ -555,10 +571,11 @@ public:
   TokenView ifTok;
   UPtr<Expr> condition;
   UPtr<CompoundStmt> thenBranch;
-  UPtr<CompoundStmt> elseBranch; // nullptr if no else branch
+  // nullptr if no else branch
+  UPtrNullable<CompoundStmt> elseBranch;
 
   IfStmt(TokenView ifTok, UPtr<Expr> cond, UPtr<CompoundStmt> thenB,
-         UPtr<CompoundStmt> elseB)
+         UPtrNullable<CompoundStmt> elseB)
       : ifTok(ifTok), condition(std::move(cond)), thenBranch(std::move(thenB)),
         elseBranch(std::move(elseB)) {}
 
@@ -580,18 +597,18 @@ public:
 
 using ForInit = std::variant<UPtr<VarDecl>, UPtr<Expr>>;
 
-/** @brief <for_stmt> ::= "for" "(" ... ")" <stmt> */
 class ForStmt final : public Stmt {
 public:
   TokenView forTok;
   // std::nullopt if absent, No VarDecl or Expr for init
   std::optional<ForInit> initializer;
-  UPtr<Expr> condition; // nullptr if absent
-  UPtr<Expr> update;    // nullptr if absent
+  UPtrNullable<Expr> condition; // nullptr if absent
+  UPtrNullable<Expr> update;    // nullptr if absent
   UPtr<CompoundStmt> body;
 
-  ForStmt(TokenView forTok, std::optional<ForInit> init, UPtr<Expr> cond,
-          UPtr<Expr> update, UPtr<CompoundStmt> body)
+  ForStmt(TokenView forTok, std::optional<ForInit> init,
+          UPtrNullable<Expr> cond, UPtrNullable<Expr> update,
+          UPtr<CompoundStmt> body)
       : forTok(forTok), initializer(std::move(init)),
         condition(std::move(cond)), update(std::move(update)),
         body(std::move(body)) {}
@@ -602,9 +619,10 @@ public:
 class ReturnStmt final : public Stmt {
 public:
   TokenView returnTok;
-  UPtr<Expr> value; // nullptr for "return;"
+  UPtrNullable<Expr> value;
+  // nullptr for "return;"
 
-  ReturnStmt(TokenView retTok, UPtr<Expr> val)
+  ReturnStmt(TokenView retTok, UPtrNullable<Expr> val)
       : returnTok(retTok), value(std::move(val)) {}
 
   void accept(ASTVisitor &visitor) override { visitor.visit(this); }
@@ -642,32 +660,31 @@ public:
 
 // --- Switch/Match ---
 
-/** @brief <case_block> ::= "case" <const_expr> "=>" { <stmt> } */
 class CaseBlock final : public Node {
 public:
   TokenView caseTok;
   UPtr<Expr> value; // const_expr
-  Vec<UPtr<Stmt>> body;
+  UPtr<CompoundStmt> body;
 
-  CaseBlock(TokenView caseTok, UPtr<Expr> val, Vec<UPtr<Stmt>> body)
+  CaseBlock(TokenView caseTok, UPtr<Expr> val, UPtr<CompoundStmt> body)
       : caseTok(caseTok), value(std::move(val)), body(std::move(body)) {}
 
   void accept(ASTVisitor &visitor) override { visitor.visit(this); }
 };
 
-/** @brief <switch_stmt> ::= "switch" ... "{" ... "}" */
 class SwitchStmt final : public Stmt {
 public:
   TokenView switchTok;
   UPtr<Expr> expression;
   Vec<UPtr<CaseBlock>> cases;
-  Vec<UPtr<Stmt>> defaultBody; // Empty if no default
-  bool hasDefault = false;
+
+  // Empty if no default
+  UPtrNullable<CompoundStmt> defaultBody;
 
   SwitchStmt(TokenView swTok, UPtr<Expr> expr, Vec<UPtr<CaseBlock>> cases,
-             Vec<UPtr<Stmt>> defBody)
+             UPtrNullable<CompoundStmt> defBody)
       : switchTok(swTok), expression(std::move(expr)), cases(std::move(cases)),
-        defaultBody(std::move(defBody)), hasDefault(!defaultBody.empty()) {}
+        defaultBody(std::move(defBody)) {}
 
   void accept(ASTVisitor &visitor) override { visitor.visit(this); }
 };
@@ -675,11 +692,12 @@ public:
 class MatchArm final : public Node {
 public:
   Vec<UPtr<Pattern>> patterns;
-  Vec<UPtr<Stmt>> body;
-  TokenView arrowTok; // "=>"
+  UPtr<CompoundStmt> body;
+  TokenView fatArrowTok; // "=>"
 
-  MatchArm(Vec<UPtr<Pattern>> pats, Vec<UPtr<Stmt>> body, TokenView arrow)
-      : patterns(std::move(pats)), body(std::move(body)), arrowTok(arrow) {}
+  MatchArm(Vec<UPtr<Pattern>> pats, UPtr<CompoundStmt> body, TokenView fatArrow)
+      : patterns(std::move(pats)), body(std::move(body)),
+        fatArrowTok(fatArrow) {}
 
   void accept(ASTVisitor &visitor) override { visitor.visit(this); }
 };
@@ -707,6 +725,7 @@ public:
   UPtr<Expr> value; // literal or identifier
 
   ConstPattern(UPtr<Expr> val) : value(std::move(val)) {}
+
   void accept(ASTVisitor &visitor) override { visitor.visit(this); }
 };
 
@@ -715,6 +734,7 @@ class WildcardPattern final : public Pattern {
 public:
   TokenView underscoreTok;
   WildcardPattern(TokenView tok) : underscoreTok(tok) {}
+
   void accept(ASTVisitor &visitor) override { visitor.visit(this); }
 };
 
@@ -728,14 +748,25 @@ class Identifier final : public Expr {
 public:
   TokenView name;
   Identifier(TokenView name) : name(name) {}
+
   void accept(ASTVisitor &visitor) override { visitor.visit(this); }
 };
 
-class NumberLiteral final : public Expr {
+class IntLiteral final : public Expr {
+public:
+  TokenView value;
+  IntLiteralFormat format;
+
+  IntLiteral(TokenView val, IntLiteralFormat fmt) : value(val), format(fmt) {}
+
+  void accept(ASTVisitor &visitor) override { visitor.visit(this); }
+};
+class FloatLiteral final : public Expr {
 public:
   TokenView value;
 
-  NumberLiteral(TokenView val) : value(val) {}
+  FloatLiteral(TokenView val) : value(val) {}
+
   void accept(ASTVisitor &visitor) override { visitor.visit(this); }
 };
 
@@ -743,6 +774,7 @@ class StringLiteral final : public Expr {
 public:
   TokenView value;
   StringLiteral(TokenView val) : value(val) {}
+
   void accept(ASTVisitor &visitor) override { visitor.visit(this); }
 };
 
@@ -750,6 +782,7 @@ class CharLiteral final : public Expr {
 public:
   TokenView value;
   CharLiteral(TokenView val) : value(val) {}
+
   void accept(ASTVisitor &visitor) override { visitor.visit(this); }
 };
 
@@ -759,6 +792,7 @@ public:
   bool boolValue;
 
   BoolLiteral(TokenView val, bool b) : value(val), boolValue(b) {}
+
   void accept(ASTVisitor &visitor) override { visitor.visit(this); }
 };
 
@@ -766,6 +800,7 @@ class NullLiteral final : public Expr {
 public:
   TokenView nullTok;
   NullLiteral(TokenView tok) : nullTok(tok) {}
+
   void accept(ASTVisitor &visitor) override { visitor.visit(this); }
 };
 
@@ -773,6 +808,7 @@ class GroupedExpr final : public Expr {
 public:
   UPtr<Expr> inner;
   GroupedExpr(UPtr<Expr> inner) : inner(std::move(inner)) {}
+
   void accept(ASTVisitor &visitor) override { visitor.visit(this); }
 };
 
@@ -789,16 +825,15 @@ public:
 };
 
 /** @brief <struct_init> ::= <identifier> "{" ... "}" */
+using structInitFieldList = Vec<UPtr<StructInitField>>;
+
 class StructInit final : public Expr {
 public:
   TokenView structName;
-  Vec<UPtr<StructInitField>> fields;
-  // Remaining, Struct fields that are not initalised
-  // Assume thier, default stated value
-  // Or garbage value, if even default value also empty
-
-  StructInit(TokenView name, Vec<UPtr<StructInitField>> fields)
-      : structName(name), fields(std::move(fields)) {}
+  UPtrNullable<structInitFieldList> fields;
+  // Not mentioned struct fields that are not init
+  StructInit(TokenView name, UPtrNullable<structInitFieldList> fList)
+      : structName(name), fields(std::move(fList)) {}
 
   void accept(ASTVisitor &visitor) override { visitor.visit(this); }
 };
@@ -860,11 +895,13 @@ public:
 
 class CastExpr final : public Expr {
 public:
+  TokenView castToken;
   UPtr<TypeSpec> targetType;
   UPtr<Expr> operand;
 
-  CastExpr(UPtr<TypeSpec> type, UPtr<Expr> expr)
-      : targetType(std::move(type)), operand(std::move(expr)) {}
+  CastExpr(TokenView cTok, UPtr<TypeSpec> type, UPtr<Expr> expr)
+      : castToken(cTok), targetType(std::move(type)), operand(std::move(expr)) {
+  }
 
   void accept(ASTVisitor &visitor) override { visitor.visit(this); }
 };
@@ -872,12 +909,12 @@ public:
 class CallExpr final : public Expr {
 public:
   UPtr<Expr> callee;
-  Vec<UPtr<Expr>> arguments;
-  TokenView closeParen; // Good for location info
+  UPtrNullable<argList> arguments;
+  TokenView openParen; // Good for location info
 
-  CallExpr(UPtr<Expr> callee, Vec<UPtr<Expr>> args, TokenView closeParen)
+  CallExpr(UPtr<Expr> callee, UPtrNullable<argList> args, TokenView paren)
       : callee(std::move(callee)), arguments(std::move(args)),
-        closeParen(closeParen) {}
+        openParen(paren) {}
 
   void accept(ASTVisitor &visitor) override { visitor.visit(this); }
 };
@@ -887,12 +924,9 @@ public:
   UPtr<Expr> object;
   TokenView opTok; // '.' or '->'
   TokenView member;
-  bool isPointerAccess; // true if '->'
 
-  MemberAccessExpr(UPtr<Expr> obj, TokenView opTok, TokenView member,
-                   bool isPtr)
-      : object(std::move(obj)), opTok(opTok), member(member),
-        isPointerAccess(isPtr) {}
+  MemberAccessExpr(UPtr<Expr> obj, TokenView opTok, TokenView member)
+      : object(std::move(obj)), opTok(opTok), member(member) {}
 
   void accept(ASTVisitor &visitor) override { visitor.visit(this); }
 };
@@ -901,11 +935,11 @@ class IndexAccessExpr final : public Expr {
 public:
   UPtr<Expr> array;
   UPtr<Expr> index;
-  TokenView closeBracket; // Good for location info
+  TokenView openBracket; // Good for location info
 
-  IndexAccessExpr(UPtr<Expr> arr, UPtr<Expr> idx, TokenView closeBracket)
-      : array(std::move(arr)), index(std::move(idx)),
-        closeBracket(closeBracket) {}
+  IndexAccessExpr(UPtr<Expr> arr, UPtr<Expr> idx, TokenView openBracket)
+      : array(std::move(arr)), index(std::move(idx)), openBracket(openBracket) {
+  }
 
   void accept(ASTVisitor &visitor) override { visitor.visit(this); }
 };

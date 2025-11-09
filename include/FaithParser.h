@@ -55,7 +55,15 @@ private:
 
   [[nodiscard]] std::unique_ptr<Faith::StructDecl> parseStructDecl();
 
+  [[nodiscard]] std::unique_ptr<Faith::StructField> parseStructField();
+
   [[nodiscard]] std::unique_ptr<Faith::TypealiasDecl> parseTypeAliasDecl();
+
+  [[nodiscard]] std::unique_ptr<Faith::CompoundStmt> parseCompoundStmt();
+
+  [[nodiscard]] std::unique_ptr<Faith::StmtList> parseStmtList();
+
+  [[nodiscard]] std::unique_ptr<Faith::Stmt> parseStmt();
 
   [[nodiscard]] std::unique_ptr<Faith::TypeSpec> parseTypeSpec();
 
@@ -74,6 +82,56 @@ private:
 
   [[nodiscard]] std::unique_ptr<Faith::RefType> parseRefType();
 
+  [[nodiscard]] std::unique_ptr<Faith::Expr> parseExpr();
+
+  [[nodiscard]] std::unique_ptr<Faith::Expr> parseAssignExpr();
+
+  [[nodiscard]] std::unique_ptr<Faith::Expr> parseConditionalExpr();
+
+  [[nodiscard]] std::unique_ptr<Faith::Expr> parseLogicalOrExpr();
+
+  [[nodiscard]] std::unique_ptr<Faith::Expr> parseLogicalAndExpr();
+
+  [[nodiscard]] std::unique_ptr<Faith::Expr> parseBitOrExpr();
+
+  [[nodiscard]] std::unique_ptr<Faith::Expr> parseBitXorExpr();
+
+  [[nodiscard]] std::unique_ptr<Faith::Expr> parseBitAndExpr();
+
+  [[nodiscard]] std::unique_ptr<Faith::Expr> parseEqualityExpr();
+
+  [[nodiscard]] std::unique_ptr<Faith::Expr> parseRelationalExpr();
+
+  [[nodiscard]] std::unique_ptr<Faith::Expr> parseShiftExpr();
+
+  [[nodiscard]] std::unique_ptr<Faith::Expr> parseAddExpr();
+
+  [[nodiscard]] std::unique_ptr<Faith::Expr> parseMultExpr();
+
+  [[nodiscard]] std::unique_ptr<Faith::Expr> parseCastExpr();
+
+  [[nodiscard]] std::unique_ptr<Faith::Expr> parseUnaryExpr();
+
+  [[nodiscard]] std::unique_ptr<Faith::Expr> parsePostfixExpr();
+
+  [[nodiscard]] std::unique_ptr<Faith::Expr> parsePrimaryExpr();
+
+  [[nodiscard]] std::unique_ptr<Faith::argList> parseArgList();
+
+  [[nodiscard]] std::unique_ptr<Faith::StructInit> parseStructInit();
+
+  [[nodiscard]] std::unique_ptr<Faith::structInitFieldList>
+  parseStructInitFieldList();
+
+  [[nodiscard]] std::unique_ptr<Faith::StructInitField> parseStructInitField();
+
+  // Helper class for parsing right hand side of expr
+  using ParseFuncPtr = std::unique_ptr<Faith::Expr> (FaithParser::*)();
+
+  std::unique_ptr<Faith::Expr>
+  parseBinaryRHS(std::unique_ptr<Faith::Expr> leftExpr, ParseFuncPtr parseRHS,
+                 Faith::BinaryOp type);
+
   // Creates and pushes a error onto stack
   // Returns the index of error message
   uint32_t createError(std::string &&errMessage);
@@ -90,6 +148,7 @@ private:
   // Consumers of Token
   Faith::TokenView advance();
   Faith::TokenView match(TokenType type);
+  std::optional<Faith::AssignmentOp> matchAssignmentOp();
 
   // Is at end helper function
   bool isAtEnd() const;

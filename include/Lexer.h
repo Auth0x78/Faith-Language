@@ -51,17 +51,16 @@ enum class TokenType {
   // ===========================================================================
   // MULTI-CHARACTER SYMBOLS / OPERATORS
   // ===========================================================================
-  PlusPlus,      // ++
-  MinusMinus,    // --
-  PlusEqual,     // +=
-  MinusEqual,    // -=
-  StarEqual,     // *=
-  SlashEqual,    // /=
-  PercentEqual,  // %=
-  AndEqual,      // &=
-  OrEqual,       // |=
-  XorEqual,      // ^=
-  QuestionEqual, // ?=
+  PlusPlus,     // ++
+  MinusMinus,   // --
+  PlusEqual,    // +=
+  MinusEqual,   // -=
+  StarEqual,    // *=
+  SlashEqual,   // /=
+  PercentEqual, // %=
+  AndEqual,     // &=
+  OrEqual,      // |=
+  XorEqual,     // ^=
 
   EqualEqual,   // ==
   BangEqual,    // !=
@@ -111,6 +110,7 @@ enum class TokenType {
   Kw_Defer,     // defer
   Kw_Break,     // break
   Kw_Continue,  // continue
+  Kw_Cast,
 
   // ===========================================================================
   // LITERALS / CONSTANTS
