@@ -100,7 +100,7 @@
 
 <struct_init> ::= <identifier> "{" [ <struct_init_field> { "," <struct_init_field> } ] "}"
 
-<struct_init_field> ::= "." <identifier> "=" <expr>
+<struct_init_field> ::= <identifier> ":" <expr>
 (* Struct literal — e.g., Point { .x = 10, .y = 20 }. *)
 
 
@@ -112,28 +112,27 @@
 <compound_stmt> ::= "{" { <stmt> } "}"
 (* Compound block of statements. *)
 
-<stmt> ::= <expr_stmt>
-         | <var_decl>
+<stmt> ::= <var_decl>
          | <if_stmt>
          | <while_stmt>
          | <for_stmt>
          | <return_stmt>
          | <defer_stmt>
-         | <switch_stmt>
          | <match_stmt>
          | <break_stmt>
          | <continue_stmt>
          | <compound_stmt>
+         | <expr_stmt>
          | ";"
 (* General statement list, including break and continue. *)
 
 <expr_stmt> ::= [ <expr> ] ";"
 (* Expression followed by semicolon, e.g., function call or assignment. *)
 
-<if_stmt> ::= "if" "(" <expr> ")" <compound_stmt> [ "else" <compound_stmt> ]
+<if_stmt> ::= "if" "(" <expr> ")" <stmt> [ "else" <stmt> ]
 (* Conditional branch. Parentheses optional. *)
 
-<while_stmt> ::= "while" "(" <expr> ")" <compound_stmt>
+<while_stmt> ::= "while" "(" <expr> ")" <stmt>
 (* While loop. *)
 
 <for_stmt> ::= "for" "(" <for_init>? ";" <expr>? ";" <expr>? ")" <compound_stmt>
@@ -154,12 +153,8 @@
 
 
 (* ---------------------------- *)
-(* SWITCH / MATCH EXPRESSIONS  *)
+(* MATCH EXPRESSIONS  *)
 (* ---------------------------- *)
-
-<switch_stmt> ::= "switch" "(" <expr> ")" "{" { <case_block> } [ "default" "=>" <compound_stmt> ] "}"
-<case_block>  ::= "case" <const_expr> "=>" <compound_stmt>
-(* C-style switch — case values must be compile-time constants. *)
 
 <match_stmt> ::= "match" "(" <expr> ")" "{" { <pattern_list> "=>" <compound_stmt> } "}"
 <pattern_list> ::= <pattern> { "|" <pattern> }
