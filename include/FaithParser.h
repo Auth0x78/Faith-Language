@@ -65,6 +65,12 @@ private:
 
   [[nodiscard]] std::unique_ptr<Faith::Stmt> parseStmt();
 
+  [[nodiscard]] std::unique_ptr<Faith::IfStmt> parseIfStmt();
+
+  [[nodiscard]] std::unique_ptr<Faith::Stmt> parseElseBlock();
+
+  [[nodiscard]] std::unique_ptr<Faith::ReturnStmt> parseReturnStmt();
+
   [[nodiscard]] std::unique_ptr<Faith::TypeSpec> parseTypeSpec();
 
   [[nodiscard]] std::unique_ptr<Faith::BaseType> parseBaseType();
@@ -142,7 +148,7 @@ private:
 
   // Only provide view of Tokens, dont consume them
   [[nodiscard]] Faith::TokenView peek();
-  [[nodiscard]] Faith::TokenView peekNext();
+  [[nodiscard]] Faith::TokenView peekNext(uint64_t lookahead = 1);
   [[nodiscard]] Faith::TokenView peekPrev();
 
   // Consumers of Token

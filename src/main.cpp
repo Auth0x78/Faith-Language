@@ -50,7 +50,7 @@ int main() {
   Lexer lexer(content_view);
   scannedTokens = std::move(lexer.scanTokens());
 
-  // Generate Abstract Syntax Tree using the scanned tokens
+  // Generate abstract syntax tree using the scanned tokens
   FaithParser parser(scannedTokens);
   std::unique_ptr<Faith::Program> astProgram = parser.parse();
 

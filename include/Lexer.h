@@ -99,9 +99,6 @@ enum class TokenType {
   Kw_Else,      // else
   Kw_For,       // for
   Kw_While,     // while
-  Kw_Switch,    // switch
-  Kw_Case,      // case
-  Kw_Default,   // default
   Kw_Match,     // match
   Kw_Extern,    // extern
   Kw_Static,    // static

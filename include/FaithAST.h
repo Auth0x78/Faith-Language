@@ -401,17 +401,17 @@ public:
 
 class VarDecl final : public Decl, public Stmt {
 public:
-  bool isGlobal;
   bool isConst;
+  bool isGlobal;
   TokenView name;
   UPtr<TypeSpec> type;
   // nullptr if no initializer
   UPtrNullable<Expr> initializer;
 
-  VarDecl(bool isConst, TokenView name, UPtr<TypeSpec> type,
+  VarDecl(bool _isConst, bool _isGlobal, TokenView name, UPtr<TypeSpec> type,
           UPtrNullable<Expr> init)
-      : isConst(isConst), name(name), type(std::move(type)),
-        initializer(std::move(init)) {}
+      : isConst(_isConst), isGlobal(_isGlobal), name(name),
+        type(std::move(type)), initializer(std::move(init)) {}
 
   void accept(ASTVisitor &visitor) override { visitor.visit(this); }
 };
@@ -570,14 +570,18 @@ class IfStmt final : public Stmt {
 public:
   TokenView ifTok;
   UPtr<Expr> condition;
-  UPtr<CompoundStmt> thenBranch;
+  UPtr<Stmt> thenBranch;
   // nullptr if no else branch
-  UPtrNullable<CompoundStmt> elseBranch;
+  UPtrNullable<Stmt> elseBranch;
 
-  IfStmt(TokenView ifTok, UPtr<Expr> cond, UPtr<CompoundStmt> thenB,
-         UPtrNullable<CompoundStmt> elseB)
+  IfStmt(TokenView ifTok, UPtr<Expr> cond, UPtr<Stmt> thenB,
+         UPtrNullable<Stmt> elseB)
       : ifTok(ifTok), condition(std::move(cond)), thenBranch(std::move(thenB)),
         elseBranch(std::move(elseB)) {}
+
+  IfStmt(TokenView ifTok, UPtr<Expr> cond, UPtr<Stmt> thenB)
+      : ifTok(ifTok), condition(std::move(cond)), thenBranch(std::move(thenB)),
+        elseBranch(nullptr) {}
 
   void accept(ASTVisitor &visitor) override { visitor.visit(this); }
 };
@@ -587,9 +591,9 @@ class WhileStmt final : public Stmt {
 public:
   TokenView whileTok;
   UPtr<Expr> condition;
-  UPtr<CompoundStmt> body;
+  UPtr<Stmt> body;
 
-  WhileStmt(TokenView whileTok, UPtr<Expr> cond, UPtr<CompoundStmt> body)
+  WhileStmt(TokenView whileTok, UPtr<Expr> cond, UPtr<Stmt> body)
       : whileTok(whileTok), condition(std::move(cond)), body(std::move(body)) {}
 
   void accept(ASTVisitor &visitor) override { visitor.visit(this); }
@@ -654,9 +658,12 @@ public:
   void accept(ASTVisitor &visitor) override { visitor.visit(this); }
 };
 
-// TODO: Dont consider empty stmts like ';' for now
-// Maybe empty stmt can act like NOP
-// For now they are ignored in AST Parsing
+class EmptyStmt final : public Stmt {
+public:
+  TokenView semicolonTok;
+  EmptyStmt(TokenView tok) : semicolonTok(tok) {}
+  void accept(ASTVisitor &visitor) override { visitor.visit(this); }
+};
 
 // --- Switch/Match ---
 
@@ -814,12 +821,11 @@ public:
 
 class StructInitField final : public Node {
 public:
-  TokenView dotTok;
   TokenView name;
   UPtr<Expr> value;
 
-  StructInitField(TokenView dot, TokenView name, UPtr<Expr> val)
-      : dotTok(dot), name(name), value(std::move(val)) {}
+  StructInitField(TokenView name, UPtr<Expr> val)
+      : name(name), value(std::move(val)) {}
 
   void accept(ASTVisitor &visitor) override { visitor.visit(this); }
 };

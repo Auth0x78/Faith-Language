@@ -19,6 +19,11 @@ func squared_distance(p1: *Point, p2: *Point) -> i32 {
 func main() -> i32 {
     let a: Point = Point { x: 1.0, y: 2.0 };
     let b: Point = Point { x: 4.0, y: 6.0 };
+    let test: bool = true;
+
+    if (test) {
+      return 0;
+    }
 
     return distance(&a, &b);
 }
