@@ -28,7 +28,7 @@
 (* An external function declaration (must end in ';'). *)
 
 <static_func_def> ::= "static" <func_def>
-(* An static function defination (must end with body). *)
+(* A static function definition (must end with body). *)
 
 <func_def> ::= <func_decl> (';' | <compound_stmt>)
 (* A function definition has a statement block body. *)
@@ -57,7 +57,7 @@
 (* Type alias declaration. *)
 
 <type> ::= [ "!" ] <base_type> { <type_suffix> }
-(* Type specifier, may be prefixed by '?' to indicate error-returning type. *)
+(* Type specifier, may be prefixed by '!' to indicate error-returning type. *)
 
 <base_type> ::= <primitive_type>
               | <struct_type>
@@ -130,13 +130,14 @@
 (* Expression followed by semicolon, e.g., function call or assignment. *)
 
 <if_stmt> ::= "if" "(" <expr> ")" <stmt> [ "else" <stmt> ]
-(* Conditional branch. Parentheses optional. *)
+(* Conditional branch. *)
 
 <while_stmt> ::= "while" "(" <expr> ")" <stmt>
 (* While loop. *)
 
 <for_stmt> ::= "for" "(" <for_init>? ";" <expr>? ";" <expr>? ")" <compound_stmt>
-<for_init> ::= <var_decl> | <expr>
+<for_init> ::= <for_init_decl> | <expr>
+<for_init_decl> ::= ( "let" | "const" ) <identifier> ":" <type> [ "=" <expr> ]
 (* For loop (C-style). *)
 
 <return_stmt> ::= "return" [ <expr> ] ";"
@@ -156,7 +157,7 @@
 (* MATCH EXPRESSIONS  *)
 (* ---------------------------- *)
 
-<match_stmt> ::= "match" "(" <expr> ")" "{" { <pattern_list> "=>" <compound_stmt> } "}"
+<match_stmt> ::= "match" "(" <expr> ")" "{" { <pattern_list> "=>" <stmt> } "}"
 <pattern_list> ::= <pattern> { "|" <pattern> }
 <pattern> ::= <const_expr> | "_"
 (* Rust-style pattern matching. *)
@@ -188,7 +189,7 @@
 <bitwise_or_expr> ::= <bitwise_xor_expr> { "|" <bitwise_xor_expr> }
 (* Bitwise OR. *)
 
-<bitwise_xor_expr> ::= <bitwise_and_expr> { "^" <bitwise_xor_expr> }
+<bitwise_xor_expr> ::= <bitwise_and_expr> { "^" <bitwise_and_expr> }
 (* Bitwise XOR. *)
 
 <bitwise_and_expr> ::= <equality_expr> { "&" <equality_expr> }
