@@ -65,11 +65,19 @@ private:
 
   [[nodiscard]] std::unique_ptr<Faith::Stmt> parseStmt();
 
+  [[nodiscard]] std::unique_ptr<Faith::WhileStmt> parseWhileStmt();
+
+  [[nodiscard]] std::unique_ptr<Faith::ForStmt> parseForStmt();
+
+  [[nodiscard]] std::unique_ptr<Faith::DeferStmt> parseDeferStmt();
+
   [[nodiscard]] std::unique_ptr<Faith::IfStmt> parseIfStmt();
 
   [[nodiscard]] std::unique_ptr<Faith::Stmt> parseElseBlock();
 
   [[nodiscard]] std::unique_ptr<Faith::ReturnStmt> parseReturnStmt();
+
+  [[nodiscard]] std::unique_ptr<Faith::ExprStmt> parseExprStmt();
 
   [[nodiscard]] std::unique_ptr<Faith::TypeSpec> parseTypeSpec();
 

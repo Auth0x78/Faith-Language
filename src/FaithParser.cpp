@@ -94,7 +94,7 @@ Faith::TokenView FaithParser::match(TokenType type) {
 std::optional<Faith::AssignmentOp> FaithParser::matchAssignmentOp() {
   using assignOp = Faith::AssignmentOp;
   token_view curr = peek();
-  if (!peek().has_value())
+  if (!curr.has_value())
     return {};
 
   Faith::AssignmentOp opType;
@@ -275,7 +275,10 @@ FaithParser::parseFuncDecl(bool expectOnlyDecl) {
   }
 
   if (!match(TokenType::RightParen)) {
-    createError("Expected a ')' at the end of the function decl!");
+    if (paramsVec != nullptr)
+      createError("Expected a ')' after end of parameter list!");
+    else
+      createError("Expected a ')' after left parenthesis '('!");
     return nullptr;
   }
 
@@ -285,12 +288,11 @@ FaithParser::parseFuncDecl(bool expectOnlyDecl) {
 
   if (match(TokenType::Arrow)) {
     if (isAtEnd()) {
-      createError("Expected a return type for the function!");
+      createError("Expected return type after '->'!");
       return nullptr;
     }
-    retType = parseTypeSpec();
 
-    // TODO: Error recovery
+    retType = parseTypeSpec();
     if (retType == nullptr)
       return nullptr;
   }
@@ -351,7 +353,7 @@ std::unique_ptr<Faith::paramsList> FaithParser::parseParamsList() {
 std::unique_ptr<Faith::Param> FaithParser::parseParam() {
   auto ident = match(TokenType::Identifier);
   if (!ident) {
-    createError("Expected a ident name for the param!");
+    createError("Expected a name for the param");
     return nullptr;
   }
 
@@ -362,7 +364,7 @@ std::unique_ptr<Faith::Param> FaithParser::parseParam() {
 
   // Now a <type> should be present
   if (isAtEnd()) {
-    createError("Expected a type for the parameter but got end of file!");
+    createError("Expected a type for the parameter!");
     return nullptr;
   }
 
@@ -485,7 +487,7 @@ std::unique_ptr<Faith::StructField> FaithParser::parseStructField() {
       return nullptr;
     }
 
-    defVal = parseConditionalExpr();
+    defVal = parseLogicalOrExpr();
     if (defVal == nullptr)
       return nullptr;
   }
@@ -538,7 +540,7 @@ std::unique_ptr<Faith::TypealiasDecl> FaithParser::parseTypeAliasDecl() {
 std::unique_ptr<Faith::CompoundStmt> FaithParser::parseCompoundStmt() {
   token_view leftBrace = match(TokenType::LeftBrace);
   if (!leftBrace) {
-    createError("Expected '{' after function defination!");
+    createError("Expected '{' after function definition!");
     return nullptr;
   }
 
@@ -589,13 +591,13 @@ std::unique_ptr<Faith::Stmt> FaithParser::parseStmt() {
   case TokenType::Kw_If:
     return parseIfStmt();
   case TokenType::Kw_While:
-    NYI("NYI: Parse while statments!");
+    return parseWhileStmt();
   case TokenType::Kw_For:
     NYI("NYI: Parse for statments!");
   case TokenType::Kw_Return:
     return parseReturnStmt();
   case TokenType::Kw_Defer:
-    NYI("NYI: Parse defer statments!");
+    return parseDeferStmt();
   case TokenType::Kw_Match:
     NYI("NYI: Parse match statments!");
   case TokenType::Kw_Break:
@@ -606,25 +608,72 @@ std::unique_ptr<Faith::Stmt> FaithParser::parseStmt() {
     return parseCompoundStmt();
   case TokenType::Semicolon:
     return std::make_unique<Faith::EmptyStmt>(advance());
-  default: {
-    // Try parse expression statement
-    auto exprStmt = parseExpr();
-    if (exprStmt == nullptr) {
-      createError("Expected a statement!");
-      return nullptr;
-    }
-
-    if (!match(TokenType::Semicolon)) {
-      createError("Expected a ';' at the end of expression statement!");
-      return nullptr;
-    }
-
-    return std::make_unique<Faith::ExprStmt>(std::move(exprStmt));
-  }
+  default:
+    return parseExprStmt();
   }
 
   NYI("Unreachable: Reached unreachable section in parseStmt()");
   return std::unique_ptr<Faith::Stmt>();
+}
+
+std::unique_ptr<Faith::WhileStmt> FaithParser::parseWhileStmt() {
+  // Consume the while token
+  token_view whileTok = advance();
+
+  if (!match(TokenType::LeftParen)) {
+    createError("Expected '(' after 'while' token!");
+    return nullptr;
+  }
+
+  if (isAtEnd()) {
+    createError("Expected an expression after '(' in while statement!");
+    return nullptr;
+  }
+
+  auto conditionExpr = parseExpr();
+  if (conditionExpr == nullptr)
+    return nullptr;
+
+  if (!match(TokenType::RightParen)) {
+    createError("Expected ')' after condition in while statement!");
+    return nullptr;
+  }
+
+  if (isAtEnd()) {
+    createError("Expected a statement after ')' in 'while' statement!");
+    return nullptr;
+  }
+
+  auto stmtBody = parseStmt();
+  if (stmtBody == nullptr)
+    return nullptr;
+
+  return std::make_unique<Faith::WhileStmt>(whileTok, std::move(conditionExpr),
+                                            std::move(stmtBody));
+}
+
+std::unique_ptr<Faith::ForStmt> FaithParser::parseForStmt() {
+  return std::unique_ptr<Faith::ForStmt>();
+}
+
+std::unique_ptr<Faith::DeferStmt> FaithParser::parseDeferStmt() {
+  token_view deferTok = advance();
+
+  if (isAtEnd()) {
+    createError("Expected an expression to defer after the 'defer' keyword!");
+    return nullptr;
+  }
+
+  auto exitExpr = parseExpr();
+  if (exitExpr == nullptr)
+    return nullptr;
+
+  if (!match(TokenType::Semicolon)) {
+    createError("Expected ';' after exit expression in 'defer' stmt!");
+    return nullptr;
+  }
+
+  return std::make_unique<Faith::DeferStmt>(deferTok, exitExpr);
 }
 
 std::unique_ptr<Faith::IfStmt> FaithParser::parseIfStmt() {
@@ -636,7 +685,7 @@ std::unique_ptr<Faith::IfStmt> FaithParser::parseIfStmt() {
   }
 
   if (isAtEnd()) {
-    createError("Expected a expression after '(' in if statement!");
+    createError("Expected an expression after '(' in if statement!");
     return nullptr;
   }
 
@@ -682,7 +731,7 @@ std::unique_ptr<Faith::ReturnStmt> FaithParser::parseReturnStmt() {
   token_view retTok = advance();
 
   if (isAtEnd()) {
-    createError("Expected a expression or ';' after return!");
+    createError("Expected an expression or ';' after return!");
     return nullptr;
   }
 
@@ -701,6 +750,22 @@ std::unique_ptr<Faith::ReturnStmt> FaithParser::parseReturnStmt() {
   return std::make_unique<Faith::ReturnStmt>(retTok, std::move(expr));
 }
 
+std::unique_ptr<Faith::ExprStmt> FaithParser::parseExprStmt() {
+  // Try parse expression statement
+  auto exprStmt = parseExpr();
+  if (exprStmt == nullptr) {
+    createError("Expected a statement!");
+    return nullptr;
+  }
+
+  if (!match(TokenType::Semicolon)) {
+    createError("Expected a ';' at the end of expression statement!");
+    return nullptr;
+  }
+
+  return std::make_unique<Faith::ExprStmt>(std::move(exprStmt));
+}
+
 std::unique_ptr<Faith::TypeSpec> FaithParser::parseTypeSpec() {
 
   auto locToken = peek();
@@ -712,21 +777,18 @@ std::unique_ptr<Faith::TypeSpec> FaithParser::parseTypeSpec() {
   }
   // Parse base type, if tokens are avail.
   auto base = parseBaseType();
+  if (base == nullptr)
+    return nullptr;
 
   int arrDim = 0;
 
-  token_view rightBrack = match(TokenType::RightBracket);
-
-  while (rightBrack) {
-    if (!match(TokenType::LeftBracket)) {
+  while (match(TokenType::LeftBracket)) {
+    if (!match(TokenType::RightBracket)) {
       // If ']' is missing, this is a syntax error.
       createError("Expected ']' to close array type suffix.");
-
       return nullptr;
     }
-
     arrDim++;
-    rightBrack = match(TokenType::RightBracket);
   }
 
   return std::make_unique<Faith::TypeSpec>(locToken, bang.has_value(),
@@ -810,14 +872,11 @@ std::unique_ptr<Faith::FuncPtrType> FaithParser::parseFuncPtrType() {
   token_view starTok = advance();
 
   // Expect and consume the 'func' keyword
-  if (!match(TokenType::Kw_Func)) {
-    // This should not happen if the caller matched '*' and then checked the
-    // next token, but included for robust error handling.
+  token_view funcTok = match(TokenType::Kw_Func);
+  if (!funcTok) {
     createError("Expected 'func' keyword after pointer operator '*'.");
     return nullptr;
   }
-
-  token_view funcTok = advance(); // Save the consumed func token for location
 
   // Expect and consume the opening parenthesis '('
   token_view leftParen = match(TokenType::LeftParen);
@@ -909,12 +968,12 @@ std::unique_ptr<Faith::PtrType> FaithParser::parsePtrType() {
     return nullptr;
   }
 
-  // Parse the base type that the pointer points to (e.g., 'int' in 'int*').
+  // Parse the base type that the pointer points to (e.g., 'int' in '*int').
   //    This is the recursive step.
   std::unique_ptr<Faith::BaseType> baseType = parseBaseType();
 
   // Propagate error upwards
-  if (baseType != nullptr)
+  if (baseType == nullptr)
     return nullptr;
 
   return std::make_unique<Faith::PtrType>(starTok, std::move(baseType));
@@ -935,7 +994,7 @@ std::unique_ptr<Faith::RefType> FaithParser::parseRefType() {
   std::unique_ptr<Faith::BaseType> baseType = parseBaseType();
 
   // Propagate error upwards
-  if (baseType != nullptr)
+  if (baseType == nullptr)
     return nullptr;
 
   return std::make_unique<Faith::RefType>(ampTok, std::move(baseType));
@@ -1043,8 +1102,8 @@ std::unique_ptr<Faith::Expr> FaithParser::parseLogicalAndExpr() {
     return nullptr;
 
   // Match '&&' token if match
-  auto orToken = match(TokenType::LogicalAnd);
-  while (orToken) {
+  auto andToken = match(TokenType::LogicalAnd);
+  while (andToken) {
     // Check if any tokens available to consume, if not ret with error
     if (isAtEnd()) {
       createError("Expected an expr on the right of assignment operation!");
@@ -1057,10 +1116,10 @@ std::unique_ptr<Faith::Expr> FaithParser::parseLogicalAndExpr() {
       return nullptr;
 
     leftExpr = std::make_unique<Faith::BinaryExpr>(
-        std::move(leftExpr), orToken, binOp::LogicalAnd, std::move(rightExpr));
+        std::move(leftExpr), andToken, binOp::LogicalAnd, std::move(rightExpr));
 
     // consume more '&&' tokens
-    orToken = match(TokenType::LogicalAnd);
+    andToken = match(TokenType::LogicalAnd);
   }
 
   return leftExpr;
@@ -1302,10 +1361,13 @@ std::unique_ptr<Faith::Expr> FaithParser::parseCastExpr() {
 
   if (isAtEnd()) {
     createError("Expected a type for the cast expression!");
+    return nullptr;
   }
 
   // Parse the toType of the cast_expr
   auto toType = parseTypeSpec();
+  if (toType == nullptr)
+    return nullptr;
 
   if (!match(TokenType::Greater)) {
     createError("Expected '>' after type!");
@@ -1318,7 +1380,7 @@ std::unique_ptr<Faith::Expr> FaithParser::parseCastExpr() {
   }
 
   if (isAtEnd()) {
-    createError("Expected a expression after '(' but got end of file!");
+    createError("Expected an expression after '(' but got end of file!");
     return nullptr;
   }
 
@@ -1330,6 +1392,7 @@ std::unique_ptr<Faith::Expr> FaithParser::parseCastExpr() {
   // Match for ')' if not return null
   if (!match(TokenType::RightParen)) {
     createError("Expected a ')' after expression!");
+    return nullptr;
   }
 
   return std::make_unique<Faith::CastExpr>(castKw, std::move(toType),
@@ -1485,7 +1548,7 @@ std::unique_ptr<Faith::Expr> FaithParser::parsePrimaryExpr() {
   switch (tok->type) {
   case TokenType::LeftParen: {
     if (isAtEnd()) {
-      createError("Expected a expression after '(' got end of file!");
+      createError("Expected an expression after '(' got end of file!");
       return nullptr;
     }
 
@@ -1515,22 +1578,16 @@ std::unique_ptr<Faith::Expr> FaithParser::parsePrimaryExpr() {
   } break;
   case TokenType::StringLiteral:
     return std::make_unique<Faith::StringLiteral>(tok);
-
   case TokenType::CharLiteral:
     return std::make_unique<Faith::CharLiteral>(tok);
-
   case TokenType::BinaryLiteral:
     return std::make_unique<Faith::IntLiteral>(tok, ilFormat::Binary);
-
   case TokenType::IntLiteral:
     return std::make_unique<Faith::IntLiteral>(tok, ilFormat::Normal);
-
   case TokenType::HexLiteral:
     return std::make_unique<Faith::IntLiteral>(tok, ilFormat::Hex);
-
   case TokenType::FloatLiteral:
     return std::make_unique<Faith::FloatLiteral>(tok);
-
   case TokenType::Kw_True:
     return std::make_unique<Faith::BoolLiteral>(tok, true);
   case TokenType::Kw_False:
@@ -1582,6 +1639,7 @@ std::unique_ptr<Faith::StructInit> FaithParser::parseStructInit() {
 
   if (!match(TokenType::RightBrace)) {
     createError("Expected a '}' after struct init field list!");
+    return nullptr;
   }
   return std::make_unique<Faith::StructInit>(structName,
                                              std::move(structInitList));
@@ -1609,7 +1667,7 @@ FaithParser::parseStructInitFieldList() {
 std::unique_ptr<Faith::StructInitField> FaithParser::parseStructInitField() {
   auto memberName = match(TokenType::Identifier);
   if (!memberName) {
-    createError("Expected a member name after '.' character!");
+    createError("Expected a member name after '{' in struct initializer.!");
     return nullptr;
   }
 
