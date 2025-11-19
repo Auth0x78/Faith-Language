@@ -1,6 +1,7 @@
 ﻿#include <string_view>
 #include <vector>
 
+#include "ASTPrinter.h"
 #include "FaithParser.h"
 #include "FileRead.h"
 #include "Lexer.h"
@@ -9,6 +10,9 @@
 // File buffer string, lifetime: Until Program ends
 static std::string file_buffer;
 static std::vector<Token> scannedTokens;
+
+// Function forward define
+int handleError(FileError);
 
 int main() {
 
@@ -20,22 +24,9 @@ int main() {
 
   auto expected_content = read_file_to_string(osfilepath);
 
-  if (!expected_content) {
-    // Failure! Handle the specific error.
-    switch (expected_content.error()) {
-    case FileError::CannotOpenFile:
-      Logger::fmtLog(LogLevel::Error, "Error: Could not open the file.");
-      break;
-    case FileError::CannotReadFile:
-      Logger::fmtLog(LogLevel::Error,
-                     "Error: An issue occurred while reading the file.");
-      break;
-    case FileError::FileTooLarge:
-      Logger::fmtLog(LogLevel::Error, "Error: File exceeds the 128MB limit.");
-      break;
-    }
-    return 1;
-  }
+  // Handle errors
+  if (!expected_content)
+    return handleError(expected_content.error());
 
   // The string 'file_buffer' now owns the data.
   file_buffer = std::move(*expected_content);
@@ -54,5 +45,27 @@ int main() {
   FaithParser parser(scannedTokens);
   std::unique_ptr<Faith::Program> astProgram = parser.parse();
 
+  // Instantiate AST Printer and print the abstract syntax tree
+  Faith::ASTPrinter printer;
+  printer.print(astProgram.get());
+
   return 0;
+}
+
+// Function Definations
+int handleError(FileError err) {
+  // Failure, Handle the specific error & print error message.
+  switch (err) {
+  case FileError::CannotOpenFile:
+    Logger::fmtLog(LogLevel::Error, "Error: Could not open the file.");
+    break;
+  case FileError::CannotReadFile:
+    Logger::fmtLog(LogLevel::Error,
+                   "Error: An issue occurred while reading the file.");
+    break;
+  case FileError::FileTooLarge:
+    Logger::fmtLog(LogLevel::Error, "Error: File exceeds the 128MB limit.");
+    break;
+  }
+  return 1;
 }

@@ -101,7 +101,7 @@
 <struct_init> ::= <identifier> "{" [ <struct_init_field> { "," <struct_init_field> } ] "}"
 
 <struct_init_field> ::= <identifier> ":" <expr>
-(* Struct literal — e.g., Point { .x = 10, .y = 20 }. *)
+(* Struct literal — e.g., Point { x : 10, y : 20 }. *)
 
 
 

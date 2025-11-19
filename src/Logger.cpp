@@ -65,12 +65,19 @@ void Logger::fmtLog(LogLevel level, const char *const message, ...) {
 void Logger::fmtLog(const char *message,
                     ...) /* Assume the log level to be none */
 {
+  if (!message) {
+    printf("(null)\n");
+    return;
+  }
+
   va_list args;
   va_start(args, message);
-  vprintf(message, args);
+
+  vfprintf(stdout, message, args); // SAFE: prints to stdout reliably
+
   va_end(args);
 
-  printf("\n");
+  fputc('\n', stdout); // safer than printf("\n");
 }
 
 void Logger::SetLogLevel(LogLevel level) { _level = level; }

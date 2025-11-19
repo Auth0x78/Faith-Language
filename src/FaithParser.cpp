@@ -154,7 +154,6 @@ Faith::TokenView FaithParser::peekPrev() {
 }
 
 Faith::TokenView FaithParser::peek() {
-
   return m_current >= m_tokenArrSize ? nullptr
                                      : Faith::TokenView(&m_tokens[m_current]);
 }
@@ -421,7 +420,6 @@ std::unique_ptr<Faith::VarDecl> FaithParser::parseVarDecl(bool isConst,
 }
 
 std::unique_ptr<Faith::StructDecl> FaithParser::parseStructDecl() {
-  // TODO: Implement parsing of struct decl
   auto structToken = advance();
 
   auto ident = match(TokenType::Identifier);
@@ -653,6 +651,7 @@ std::unique_ptr<Faith::WhileStmt> FaithParser::parseWhileStmt() {
 }
 
 std::unique_ptr<Faith::ForStmt> FaithParser::parseForStmt() {
+  NYI("NYI: Parse for statments!");
   return std::unique_ptr<Faith::ForStmt>();
 }
 
@@ -673,7 +672,7 @@ std::unique_ptr<Faith::DeferStmt> FaithParser::parseDeferStmt() {
     return nullptr;
   }
 
-  return std::make_unique<Faith::DeferStmt>(deferTok, exitExpr);
+  return std::make_unique<Faith::DeferStmt>(deferTok, std::move(exitExpr));
 }
 
 std::unique_ptr<Faith::IfStmt> FaithParser::parseIfStmt() {

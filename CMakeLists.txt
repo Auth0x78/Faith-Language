@@ -57,9 +57,6 @@ elseif(UNIX)
     message(STATUS "Configuring for Linux/Unix")
 endif()
 
-# -------------------------------------------------------------
-# Summary
-# -------------------------------------------------------------
 message(STATUS "Project '${CMAKE_PROJECT_NAME}' configured for ${CMAKE_SYSTEM_NAME}")
 message(STATUS "Source directory: ${CMAKE_CURRENT_SOURCE_DIR}")
 message(STATUS "Build type: ${CMAKE_BUILD_TYPE}")

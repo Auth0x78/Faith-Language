@@ -608,11 +608,10 @@ public:
   std::optional<ForInit> initializer;
   UPtrNullable<Expr> condition; // nullptr if absent
   UPtrNullable<Expr> update;    // nullptr if absent
-  UPtr<CompoundStmt> body;
+  UPtr<Stmt> body;
 
   ForStmt(TokenView forTok, std::optional<ForInit> init,
-          UPtrNullable<Expr> cond, UPtrNullable<Expr> update,
-          UPtr<CompoundStmt> body)
+          UPtrNullable<Expr> cond, UPtrNullable<Expr> update, UPtr<Stmt> body)
       : forTok(forTok), initializer(std::move(init)),
         condition(std::move(cond)), update(std::move(update)),
         body(std::move(body)) {}
