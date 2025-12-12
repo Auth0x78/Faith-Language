@@ -99,7 +99,7 @@ enum class TokenType {
   Kw_Else,      // else
   Kw_For,       // for
   Kw_While,     // while
-  Kw_Match,     // match
+  Kw_Switch,    // match
   Kw_Extern,    // extern
   Kw_Static,    // static
   Kw_Struct,    // struct
