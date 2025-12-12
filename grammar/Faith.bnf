@@ -118,7 +118,7 @@
          | <for_stmt>
          | <return_stmt>
          | <defer_stmt>
-         | <match_stmt>
+         | <switch_stmt>
          | <break_stmt>
          | <continue_stmt>
          | <compound_stmt>
@@ -154,19 +154,21 @@
 
 
 (* ---------------------------- *)
-(* MATCH EXPRESSIONS  *)
+(* SWITCH EXPRESSIONS  *)
 (* ---------------------------- *)
 
-<match_stmt> ::= "match" "(" <expr> ")" "{" { <pattern_list> "=>" <stmt> } "}"
-<pattern_list> ::= <pattern> { "|" <pattern> }
-<pattern> ::= <const_expr> | "_"
+<switch_stmt> ::= "switch" "(" <expr> ")" "{" { <switch_arm> } "}"
+
+<switch_arm> ::= <pattern_list> "=>" <stmt>
+
 (* Rust-style pattern matching. *)
+
+<pattern_list> ::= <pattern> { "|" <pattern> }
+<pattern> ::= "_" | <cast_expr>
 
 (* ---------------------------- *)
 (* EXPRESSIONS                 *)
 (* ---------------------------- *)
-<const_expr> ::= <conditional_expr>
-(* Constant expression for switch/match cases. *)
 
 <expr> ::= <assignment_expr>
 (* Entry point for all expressions. *)
