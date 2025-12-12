@@ -34,7 +34,7 @@ int main() {
   // Create a non-owning view of the data for processing.
   std::string_view content_view(file_buffer);
 
-  Logger::fmtLog(LogLevel::Info, "Successfully read %lld bytes",
+  Logger::fmtLog(LogLevel::Info, "Successfully read {} bytes",
                  content_view.length());
 
   // Provide the file's content to Lexer for scanning

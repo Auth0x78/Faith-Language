@@ -36,7 +36,7 @@ FaithParser::parseBinaryRHS(std::unique_ptr<Faith::Expr> leftExpr,
                                              std::move(rightExpr));
 }
 
-uint32_t FaithParser::createError(std::string &&errMessage) {
+uint32_t FaithParser::createError(const std::string &errMessage) {
 
   parseError &err = m_errorStack.emplace();
   err.message = errMessage;
@@ -45,23 +45,23 @@ uint32_t FaithParser::createError(std::string &&errMessage) {
   return m_errNum++;
 }
 
-uint32_t FaithParser::createGlobalError(std::string &&errMessage) {
+uint32_t FaithParser::createGlobalError(const std::string &errMessage) {
   parseError &err = m_errorStack.emplace();
   err.message = errMessage;
 
   return m_errNum++;
 }
 
+#include <print>
+
 void FaithParser::printErrors() {
   if (m_errorStack.empty()) {
-    Logger::Log(LogLevel::Info, "No parser errors found.");
+    std::println("No parser errors found.");
     return;
   }
 
-  Logger::fmtLog(LogLevel::Error,
-                 "=== Parser Errors (%zu) ===", m_errorStack.size());
+  std::println("=== Parser Errors ({}) ===", m_errorStack.size());
 
-  // Copy stack to preserve it
   std::stack<parseError> tempStack = m_errorStack;
   uint32_t count = 0;
 
@@ -69,20 +69,18 @@ void FaithParser::printErrors() {
     const parseError &err = tempStack.top();
     ++count;
 
-    // If Faith::TokenView gives location info, print it
     if (err.errorLoc) {
-      Logger::fmtLog(LogLevel::Error, "#%u | Token at line %u, column %u -> %s",
-                     count, err.errorLoc->line, err.message.c_str());
+      std::println("#{} | Token at line {} -> {}", count, err.errorLoc->line,
+                   err.message);
     } else {
-      Logger::fmtLog(LogLevel::Error, "#%u | <unknown location> -> %s", count,
-                     err.message.c_str());
+      std::println("#{} | <unknown location> -> {}", count, err.message);
     }
 
     tempStack.pop();
   }
 
-  Logger::Log(LogLevel::Error, "=============================");
-};
+  std::println("=============================");
+}
 
 Faith::TokenView FaithParser::match(TokenType type) {
   if (isAtEnd() || m_tokens[m_current].type != type)
@@ -173,7 +171,7 @@ std::unique_ptr<Faith::Program> FaithParser::parse() {
       m_program->declarations.push_back(std::move(decl));
     else {
       printErrors();
-      NYI("NYI: Error Recovery!");
+      // NYI("NYI: Error Recovery!");
     }
   }
 
@@ -596,8 +594,8 @@ std::unique_ptr<Faith::Stmt> FaithParser::parseStmt() {
     return parseReturnStmt();
   case TokenType::Kw_Defer:
     return parseDeferStmt();
-  case TokenType::Kw_Match:
-    NYI("NYI: Parse match statments!");
+  case TokenType::Kw_Switch:
+    return parseSwitchStmt();
   case TokenType::Kw_Break:
     return std::make_unique<Faith::BreakStmt>(advance());
   case TokenType::Kw_Continue:
@@ -653,6 +651,105 @@ std::unique_ptr<Faith::WhileStmt> FaithParser::parseWhileStmt() {
 std::unique_ptr<Faith::ForStmt> FaithParser::parseForStmt() {
   NYI("NYI: Parse for statments!");
   return std::unique_ptr<Faith::ForStmt>();
+}
+
+std::unique_ptr<Faith::SwitchStmt> FaithParser::parseSwitchStmt() {
+  auto switchTok = advance();
+
+  if (!match(TokenType::LeftParen)) {
+    createError("Expected '(' after 'switch'!");
+    return nullptr;
+  }
+
+  if (isAtEnd()) {
+    createError("Expected an expression after '(' in switch statement!");
+    return nullptr;
+  }
+
+  auto switchExpr = parseExpr();
+
+  if (!match(TokenType::RightParen)) {
+    createError("Expected ')' after expression!");
+    return nullptr;
+  }
+
+  if (!match(TokenType::LeftBrace)) {
+    createError("Expected '{' after ')' in switch!");
+    return nullptr;
+  }
+
+  // Parse Switch Arms
+  auto switchArms =
+      std::make_unique<std::vector<std::unique_ptr<Faith::SwitchArm>>>();
+  while (!isAtEnd() && peek()->type != TokenType::RightBrace) {
+    auto switchArm = parseSwitchArm();
+    if (switchArm == nullptr)
+      return nullptr;
+    switchArms->push_back(std::move(switchArm));
+  }
+
+  if (!match(TokenType::RightBrace)) {
+    createError("Expected '}' at end of switch statement!");
+    return nullptr;
+  }
+
+  return std::make_unique<Faith::SwitchStmt>(switchTok, std::move(switchExpr),
+                                             std::move(switchArms));
+}
+
+std::unique_ptr<Faith::SwitchArm> FaithParser::parseSwitchArm() {
+  auto patterns = parsePatternList();
+
+  auto fatArrow = match(TokenType::FatArrow);
+  if (!fatArrow) {
+    createError("Expected '=>' after pattern end!");
+    return nullptr;
+  }
+
+  if (isAtEnd()) {
+    createError("Expected a statement for the pattern arm");
+    return nullptr;
+  }
+
+  auto stmt = parseStmt();
+  if (stmt == nullptr)
+    return nullptr;
+
+  return std::make_unique<Faith::SwitchArm>(std::move(patterns),
+                                            std::move(stmt), fatArrow);
+}
+
+std::unique_ptr<Faith::PatternList> FaithParser::parsePatternList() {
+  auto patternList = std::make_unique<Faith::PatternList>();
+
+  auto pattern0 = parsePattern();
+  if (pattern0 == nullptr)
+    return nullptr;
+  patternList->push_back(std::move(pattern0));
+
+  while (match(TokenType::Pipe)) {
+    if (isAtEnd()) {
+      createError("Expected a pattern after '|' but found none!");
+      return nullptr;
+    }
+
+    auto patternN = parsePattern();
+    if (patternN == nullptr)
+      return nullptr;
+    patternList->push_back(std::move(patternN));
+  }
+
+  return std::move(patternList);
+}
+
+std::unique_ptr<Faith::Pattern> FaithParser::parsePattern() {
+  auto underscore = match(TokenType::Underscore);
+  if (underscore) {
+    return std::make_unique<Faith::WildcardPattern>(underscore);
+  }
+
+  auto val = parseCastExpr();
+  return std::make_unique<Faith::ConstPattern>(std::move(val));
 }
 
 std::unique_ptr<Faith::DeferStmt> FaithParser::parseDeferStmt() {

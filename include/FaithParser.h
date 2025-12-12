@@ -69,6 +69,14 @@ private:
 
   [[nodiscard]] std::unique_ptr<Faith::ForStmt> parseForStmt();
 
+  [[nodiscard]] std::unique_ptr<Faith::SwitchStmt> parseSwitchStmt();
+
+  [[nodiscard]] std::unique_ptr<Faith::SwitchArm> parseSwitchArm();
+
+  [[nodiscard]] std::unique_ptr<Faith::PatternList> parsePatternList();
+
+  [[nodiscard]] std::unique_ptr<Faith::Pattern> parsePattern();
+
   [[nodiscard]] std::unique_ptr<Faith::DeferStmt> parseDeferStmt();
 
   [[nodiscard]] std::unique_ptr<Faith::IfStmt> parseIfStmt();
@@ -148,8 +156,8 @@ private:
 
   // Creates and pushes a error onto stack
   // Returns the index of error message
-  uint32_t createError(std::string &&errMessage);
-  uint32_t createGlobalError(std::string &&errMessage);
+  uint32_t createError(const std::string &errMessage);
+  uint32_t createGlobalError(const std::string &errMessage);
 
   // Prints error to logger
   void printErrors();
