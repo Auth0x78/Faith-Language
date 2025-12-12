@@ -1,4 +1,6 @@
 #include <Logger.h>
+#include <format>
+#include <print>
 
 // Set default value of _level
 LogLevel Logger::_level = LogLevel::Info;
@@ -6,94 +8,109 @@ LogLevel Logger::_level = LogLevel::Info;
 // Constructor
 Logger::Logger() {}
 
-// Public Functions
-void Logger::Log(const std::string &message) /*Assume the log level to be none*/
-{
-  std::cout << GREEN_COLOR << "[] " << RESET_COLOR << message;
+// ----------------------
+// Simple Log (no formatting, no level)
+// ----------------------
+void Logger::Log(const std::string &message) {
+  std::println("{}{}[] {}{}", GREEN_COLOR, "", RESET_COLOR, message);
 }
 
+// ----------------------
+// Log with level (no formatting)
+// ----------------------
 void Logger::Log(LogLevel level, const std::string &message) {
   if (level < _level)
     return;
+
   switch (level) {
   case Info:
-    LogInfo(message);
+    std::println("{}[INFO]:{} {}", BLUE_COLOR, RESET_COLOR, message);
     break;
   case Warning:
-    LogWarning(message);
+    std::println("{}[WARN]:{} {}", YELLOW_COLOR, RESET_COLOR, message);
     break;
   case Error:
-    LogError(message);
+    std::println("{}[ERROR]:{} {}", RED_COLOR, RESET_COLOR, message);
     break;
   case None:
-    std::cout << RESET_COLOR << message;
+    std::println("{}", message);
     break;
   default:
     break;
   }
 }
 
-void Logger::fmtLog(LogLevel level, const char *const message, ...) {
+// ----------------------
+// fmtLog (with formatting + level)
+// ----------------------
+void Logger::fmtLog(LogLevel level, const char *const fmt, ...) {
   if (level < _level)
     return;
 
-  va_list args;
-  va_start(args, message);
+  // Print prefix
   switch (level) {
   case Info:
-    std::cout << BLUE_COLOR << "[INFO]: " << RESET_COLOR;
-    vprintf(message, args);
-
+    std::print("{}[INFO]:{} ", BLUE_COLOR, RESET_COLOR);
     break;
   case Warning:
-    std::cout << YELLOW_COLOR << "[WARN]: " << RESET_COLOR;
-    vprintf(message, args);
+    std::print("{}[WARN]:{} ", YELLOW_COLOR, RESET_COLOR);
     break;
   case Error:
-    std::cout << RED_COLOR << "[ERROR]: " << RESET_COLOR;
-    vprintf(message, args);
+    std::print("{}[ERROR]:{} ", RED_COLOR, RESET_COLOR);
     break;
   case None:
-
-    vprintf(message, args);
     break;
   }
+
+  va_list args;
+  va_start(args, fmt);
+
+  // Use std::vprint_nonunicode to print formatted args
+  std::vprint_nonunicode(std::cout, std::string_view(fmt),
+                         std::make_format_args(args));
+
   va_end(args);
-  printf("\n");
+
+  std::print("\n");
 }
 
-void Logger::fmtLog(const char *message,
-                    ...) /* Assume the log level to be none */
-{
-  if (!message) {
-    printf("(null)\n");
+// ----------------------
+// fmtLog with default level = None
+// ----------------------
+void Logger::fmtLog(const char *fmt, ...) {
+  if (!fmt) {
+    std::println("(null)");
     return;
   }
 
   va_list args;
-  va_start(args, message);
+  va_start(args, fmt);
 
-  vfprintf(stdout, message, args); // SAFE: prints to stdout reliably
+  std::vprint_nonunicode(std::cout, std::string_view(fmt),
+                         std::make_format_args(args));
 
   va_end(args);
 
-  fputc('\n', stdout); // safer than printf("\n");
+  std::print("\n");
 }
 
+// ----------------------
+// Level control
+// ----------------------
 void Logger::SetLogLevel(LogLevel level) { _level = level; }
-
 LogLevel Logger::GetLogLevel() { return _level; }
 
-// Private Functions
+// ----------------------
+// Private helpers (simple versions using <print>)
+// ----------------------
 void Logger::LogInfo(const std::string &message) {
-  std::cout << BLUE_COLOR << "[INFO]: " << RESET_COLOR << message << std::endl;
+  std::println("{}[INFO]:{} {}", BLUE_COLOR, RESET_COLOR, message);
 }
 
 void Logger::LogWarning(const std::string &message) {
-  std::cout << YELLOW_COLOR << "[WARN]: " << RESET_COLOR << message
-            << std::endl;
+  std::println("{}[WARN]:{} {}", YELLOW_COLOR, RESET_COLOR, message);
 }
 
 void Logger::LogError(const std::string &message) {
-  std::cout << RED_COLOR << "[ERROR]: " << RESET_COLOR << message << std::endl;
+  std::println("{}[ERROR]:{} {}", RED_COLOR, RESET_COLOR, message);
 }
