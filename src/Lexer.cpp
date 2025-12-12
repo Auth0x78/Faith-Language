@@ -13,10 +13,10 @@ static const std::unordered_map<std::string_view, TokenType> s_keywordTable = {
     {"else", TokenType::Kw_Else},
     {"for", TokenType::Kw_For},
     {"while", TokenType::Kw_While},
-    {"match", TokenType::Kw_Match},
     {"extern", TokenType::Kw_Extern},
     {"struct", TokenType::Kw_Struct},
     {"static", TokenType::Kw_Static},
+    {"switch", TokenType::Kw_Switch},
     {"typealias", TokenType::Kw_Typealias},
     {"defer", TokenType::Kw_Defer},
     {"break", TokenType::Kw_Break},
@@ -253,6 +253,7 @@ Token Lexer::scanNumber(char firstDigit) {
     }
   }
 
+  // TODO: Add so that number ending with 'f' are also float numbers
   while (!isAtEnd() && std::isdigit(peek()))
     advance();
   if (!isAtEnd() && peek() == '.' && std::isdigit(peekNext())) {
