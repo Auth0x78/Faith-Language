@@ -1,7 +1,6 @@
 ﻿#include "ASTPrinter.h"
-
-#include <iostream>
-#include <utility>
+#include <format>
+#include <print>
 
 using namespace Faith;
 
@@ -38,26 +37,19 @@ void ASTPrinter::disableColors() {
       C_KEY = C_PARAM = RESET = "";
 }
 
-// -------------------- Printing helpers --------------------
-void ASTPrinter::print(const char *fmt, ...) {
-  va_list args;
-  va_start(args, fmt);
-  vprintf(fmt, args);
-  va_end(args);
-}
-
+// -------------------- printIndent / indent helpers --------------------
 void ASTPrinter::printIndent() {
   for (auto &s : indentStack)
-    fputs(s.c_str(), stdout);
+    std::print("{}", s); // s already contains spaces
 }
 
 void ASTPrinter::indent() { indentStack.push_back("   "); }
-
 void ASTPrinter::dedent() {
   if (!indentStack.empty())
     indentStack.pop_back();
 }
 
+// -------------------- Utilities --------------------
 long long ASTPrinter::assignId(Node *node) {
   auto it = nodeIds.find(node);
   if (it != nodeIds.end())
@@ -67,20 +59,17 @@ long long ASTPrinter::assignId(Node *node) {
   return id;
 }
 
-// Convert TokenView (const Token*) with std::string_view to safe c-string.
-// tempString is overwritten each call — use its result immediately.
 const char *ASTPrinter::safeToken(const TokenView &tv) {
   if (!tv)
     return "<unnamed>";
-  // Token::lexeme is std::string_view — convert to std::string
   tempString = std::string(tv->token);
   return tempString.c_str();
 }
 
-// -------------------- Entry point --------------------
+// -------------------- Entry --------------------
 void ASTPrinter::print(Program *program) {
   printIndent();
-  print("%sProgram%s (id=%lld)\n", C_NODE, RESET, assignId(program));
+  std::println("{}Program{} (id={})", C_NODE, RESET, assignId(program));
   indent();
   program->accept(*this);
   dedent();
@@ -94,7 +83,6 @@ void ASTPrinter::visit(Program *node) {
     return;
   for (auto &decl : node->declarations) {
     printIndent();
-    // each declaration prints its own header
     decl->accept(*this);
   }
 }
@@ -102,23 +90,22 @@ void ASTPrinter::visit(Program *node) {
 // Declarations
 void ASTPrinter::visit(FuncDecl *node) {
   printIndent();
-  print("%sFuncDecl%s (id=%lld, name=%s)\n", C_DECL, RESET, assignId(node),
-        node->name ? safeToken(node->name) : "<unnamed>");
+  std::println("{}FuncDecl{} (id={}, name={})", C_DECL, RESET, assignId(node),
+               node->name ? safeToken(node->name) : "<unnamed>");
   indent();
 
   if (node->params) {
     printIndent();
-    print("%sparams:%s\n", C_KEY, RESET);
+    std::println("{}params:{}", C_KEY, RESET);
     indent();
-    for (auto &p : *node->params) {
+    for (auto &p : *node->params)
       p->accept(*this);
-    }
     dedent();
   }
 
   if (node->returnType) {
     printIndent();
-    print("%sreturnType:%s\n", C_KEY, RESET);
+    std::println("{}returnType:{}", C_KEY, RESET);
     indent();
     node->returnType->accept(*this);
     dedent();
@@ -129,13 +116,13 @@ void ASTPrinter::visit(FuncDecl *node) {
 
 void ASTPrinter::visit(FuncDef *node) {
   printIndent();
-  print("%sFuncDef%s (id=%lld, name=%s)\n", C_DECL, RESET, assignId(node),
-        node->name ? safeToken(node->name) : "<unnamed>");
+  std::println("{}FuncDef{} (id={}, name={})", C_DECL, RESET, assignId(node),
+               node->name ? safeToken(node->name) : "<unnamed>");
   indent();
 
   if (node->params) {
     printIndent();
-    print("%sparams:%s\n", C_KEY, RESET);
+    std::println("{}params:{}", C_KEY, RESET);
     indent();
     for (auto &p : *node->params)
       p->accept(*this);
@@ -144,14 +131,14 @@ void ASTPrinter::visit(FuncDef *node) {
 
   if (node->returnType) {
     printIndent();
-    print("%sreturnType:%s\n", C_KEY, RESET);
+    std::println("{}returnType:{}", C_KEY, RESET);
     indent();
     node->returnType->accept(*this);
     dedent();
   }
 
   printIndent();
-  print("%sbody:%s\n", C_KEY, RESET);
+  std::println("{}body:{}", C_KEY, RESET);
   indent();
   node->body->accept(*this);
   dedent();
@@ -161,7 +148,7 @@ void ASTPrinter::visit(FuncDef *node) {
 
 void ASTPrinter::visit(StaticDef *node) {
   printIndent();
-  print("%sStaticDef%s (id=%lld)\n", C_DECL, RESET, assignId(node));
+  std::println("{}StaticDef{} (id={})", C_DECL, RESET, assignId(node));
   indent();
   node->funcDef->accept(*this);
   dedent();
@@ -169,23 +156,26 @@ void ASTPrinter::visit(StaticDef *node) {
 
 void ASTPrinter::visit(ExternDecl *node) {
   printIndent();
-  print("%sExternDecl%s (id=%lld, name=%s)\n", C_DECL, RESET, assignId(node),
-        node->funcDecl && node->funcDecl->name ? safeToken(node->funcDecl->name)
-                                               : "<unnamed>");
+  std::println("{}ExternDecl{} (id={}, name={})", C_DECL, RESET, assignId(node),
+               node->funcDecl && node->funcDecl->name
+                   ? safeToken(node->funcDecl->name)
+                   : "<unnamed>");
   indent();
+
   if (node->StringLiteral) {
-    // StringLiteral stored in Token::lexeme (string_view)
     printIndent();
-    print("link name: %s\n", safeToken(node->StringLiteral));
+    std::println("link name: {}", safeToken(node->StringLiteral));
   }
+
   node->funcDecl->accept(*this);
   dedent();
 }
 
 void ASTPrinter::visit(TypealiasDecl *node) {
   printIndent();
-  print("%sTypeAlias%s (id=%lld, name=%s)\n", C_TYPE, RESET, assignId(node),
-        node->name ? safeToken(node->name) : "<unnamed>");
+  std::println("{}TypeAlias{} (id={}, name={})", C_TYPE, RESET, assignId(node),
+               node->name ? safeToken(node->name) : "<unnamed>");
+
   indent();
   node->aliasedType->accept(*this);
   dedent();
@@ -193,17 +183,17 @@ void ASTPrinter::visit(TypealiasDecl *node) {
 
 void ASTPrinter::visit(StructDecl *node) {
   printIndent();
-  print("%sStructDecl%s (id=%lld, name=%s)\n", C_TYPE, RESET, assignId(node),
-        node->structName ? safeToken(node->structName) : "<unnamed>");
+  std::println("{}StructDecl{} (id={}, name={})", C_TYPE, RESET, assignId(node),
+               node->structName ? safeToken(node->structName) : "<unnamed>");
+
   indent();
 
   if (node->body) {
     printIndent();
-    print("%sfields:%s\n", C_KEY, RESET);
+    std::println("{}fields:{}", C_KEY, RESET);
     indent();
-    for (auto &f : *node->body) {
+    for (auto &f : *node->body)
       f->accept(*this);
-    }
     dedent();
   }
 
@@ -212,19 +202,21 @@ void ASTPrinter::visit(StructDecl *node) {
 
 void ASTPrinter::visit(StructField *node) {
   printIndent();
-  print("%sStructField%s (id=%lld, name=%s)\n", C_TYPE, RESET, assignId(node),
-        node->name ? safeToken(node->name) : "<unnamed>");
+  std::println("{}StructField{} (id={}, name={})", C_TYPE, RESET,
+               assignId(node),
+               node->name ? safeToken(node->name) : "<unnamed>");
+
   indent();
 
   printIndent();
-  print("type:\n");
+  std::println("type:");
   indent();
   node->type->accept(*this);
   dedent();
 
   if (node->defaultValue) {
     printIndent();
-    print("default:\n");
+    std::println("default:");
     indent();
     node->defaultValue->accept(*this);
     dedent();
@@ -235,8 +227,8 @@ void ASTPrinter::visit(StructField *node) {
 
 void ASTPrinter::visit(Param *node) {
   printIndent();
-  print("%sParam%s (id=%lld, name=%s)\n", C_PARAM, RESET, assignId(node),
-        node->name ? safeToken(node->name) : "<unnamed>");
+  std::println("{}Param{} (id={}, name={})", C_PARAM, RESET, assignId(node),
+               node->name ? safeToken(node->name) : "<unnamed>");
   indent();
   node->type->accept(*this);
   dedent();
@@ -244,20 +236,21 @@ void ASTPrinter::visit(Param *node) {
 
 void ASTPrinter::visit(VarDecl *node) {
   printIndent();
-  print("%sVarDecl%s (id=%lld, name=%s, %s)\n", C_DECL, RESET, assignId(node),
-        node->name ? safeToken(node->name) : "<unnamed>",
-        node->isConst ? "const" : "let");
+  std::println("{}VarDecl{} (id={}, name={}, {})", C_DECL, RESET,
+               assignId(node), node->name ? safeToken(node->name) : "<unnamed>",
+               node->isConst ? "const" : "let");
+
   indent();
 
   printIndent();
-  print("type:\n");
+  std::println("type:");
   indent();
   node->type->accept(*this);
   dedent();
 
   if (node->initializer) {
     printIndent();
-    print("initializer:\n");
+    std::println("initializer:");
     indent();
     node->initializer->accept(*this);
     dedent();
@@ -266,11 +259,11 @@ void ASTPrinter::visit(VarDecl *node) {
   dedent();
 }
 
-// Types
+// -------------------- Types --------------------
 void ASTPrinter::visit(TypeSpec *node) {
   printIndent();
-  print("%sTypeSpec%s (id=%lld, dims=%u)\n", C_TYPE, RESET, assignId(node),
-        node->arrayDimensions);
+  std::println("{}TypeSpec{} (id={}, dims={})", C_TYPE, RESET, assignId(node),
+               node->arrayDimensions);
   indent();
   if (node->baseTy)
     node->baseTy->accept(*this);
@@ -279,35 +272,38 @@ void ASTPrinter::visit(TypeSpec *node) {
 
 void ASTPrinter::visit(PrimitiveType *node) {
   printIndent();
-  print("%sPrimitiveType%s (id=%lld, kind=(%d, %s))\n", C_TYPE, RESET,
-        assignId(node), (int)node->kind, safeToken(node->typeToken));
+  std::println("{}PrimitiveType{} (id={}, kind=({}, {}))", C_TYPE, RESET,
+               assignId(node), (int)node->kind, safeToken(node->typeToken));
 }
 
 void ASTPrinter::visit(StructType *node) {
   printIndent();
-  print("%sStructType%s (id=%lld, name=%s)\n", C_TYPE, RESET, assignId(node),
-        node->name ? safeToken(node->name) : "<unnamed>");
+  std::println("{}StructType{} (id={}, name={})", C_TYPE, RESET, assignId(node),
+               node->name ? safeToken(node->name) : "<unnamed>");
 }
 
 void ASTPrinter::visit(FuncPtrType *node) {
   printIndent();
-  print("%sFuncPtrType%s (id=%lld)\n", C_TYPE, RESET, assignId(node));
+  std::println("{}FuncPtrType{} (id={})", C_TYPE, RESET, assignId(node));
+
   indent();
   if (node->paramsTy) {
     for (auto &t : *node->paramsTy)
       t->accept(*this);
   }
+
   printIndent();
-  print("return:\n");
+  std::println("return:");
   indent();
   node->returnType->accept(*this);
   dedent();
+
   dedent();
 }
 
 void ASTPrinter::visit(PtrType *node) {
   printIndent();
-  print("%sPtrType%s (id=%lld)\n", C_TYPE, RESET, assignId(node));
+  std::println("{}PtrType{} (id={})", C_TYPE, RESET, assignId(node));
   indent();
   node->pointedType->accept(*this);
   dedent();
@@ -315,16 +311,16 @@ void ASTPrinter::visit(PtrType *node) {
 
 void ASTPrinter::visit(RefType *node) {
   printIndent();
-  print("%sRefType%s (id=%lld)\n", C_TYPE, RESET, assignId(node));
+  std::println("{}RefType{} (id={})", C_TYPE, RESET, assignId(node));
   indent();
   node->referencedType->accept(*this);
   dedent();
 }
 
-// Statements
+// -------------------- Statements --------------------
 void ASTPrinter::visit(CompoundStmt *node) {
   printIndent();
-  print("%sCompoundStmt%s (id=%lld)\n", C_STMT, RESET, assignId(node));
+  std::println("{}CompoundStmt{} (id={})", C_STMT, RESET, assignId(node));
   indent();
   if (node->statements) {
     for (auto &s : *node->statements)
@@ -335,7 +331,7 @@ void ASTPrinter::visit(CompoundStmt *node) {
 
 void ASTPrinter::visit(ExprStmt *node) {
   printIndent();
-  print("%sExprStmt%s (id=%lld)\n", C_STMT, RESET, assignId(node));
+  std::println("{}ExprStmt{} (id={})", C_STMT, RESET, assignId(node));
   indent();
   node->expression->accept(*this);
   dedent();
@@ -343,24 +339,24 @@ void ASTPrinter::visit(ExprStmt *node) {
 
 void ASTPrinter::visit(IfStmt *node) {
   printIndent();
-  print("%sIfStmt%s (id=%lld)\n", C_STMT, RESET, assignId(node));
+  std::println("{}IfStmt{} (id={})", C_STMT, RESET, assignId(node));
   indent();
 
   printIndent();
-  print("condition:\n");
+  std::println("condition:");
   indent();
   node->condition->accept(*this);
   dedent();
 
   printIndent();
-  print("then:\n");
+  std::println("then:");
   indent();
   node->thenBranch->accept(*this);
   dedent();
 
   if (node->elseBranch) {
     printIndent();
-    print("else:\n");
+    std::println("else:");
     indent();
     node->elseBranch->accept(*this);
     dedent();
@@ -371,17 +367,17 @@ void ASTPrinter::visit(IfStmt *node) {
 
 void ASTPrinter::visit(WhileStmt *node) {
   printIndent();
-  print("%sWhileStmt%s (id=%lld)\n", C_STMT, RESET, assignId(node));
+  std::println("{}WhileStmt{} (id={})", C_STMT, RESET, assignId(node));
   indent();
 
   printIndent();
-  print("condition:\n");
+  std::println("condition:");
   indent();
   node->condition->accept(*this);
   dedent();
 
   printIndent();
-  print("body:\n");
+  std::println("body:");
   indent();
   node->body->accept(*this);
   dedent();
@@ -391,24 +387,26 @@ void ASTPrinter::visit(WhileStmt *node) {
 
 void ASTPrinter::visit(ForStmt *node) {
   printIndent();
-  print("%sForStmt%s (id=%lld)\n", C_STMT, RESET, assignId(node));
+  std::println("{}ForStmt{} (id={})", C_STMT, RESET, assignId(node));
   indent();
 
   if (node->initializer.has_value()) {
     printIndent();
-    print("init:\n");
+    std::println("init:");
     indent();
+
     if (std::holds_alternative<UPtr<VarDecl>>(node->initializer.value())) {
       std::get<UPtr<VarDecl>>(node->initializer.value())->accept(*this);
     } else {
       std::get<UPtr<Expr>>(node->initializer.value())->accept(*this);
     }
+
     dedent();
   }
 
   if (node->condition) {
     printIndent();
-    print("cond:\n");
+    std::println("cond:");
     indent();
     node->condition->accept(*this);
     dedent();
@@ -416,14 +414,14 @@ void ASTPrinter::visit(ForStmt *node) {
 
   if (node->update) {
     printIndent();
-    print("update:\n");
+    std::println("update:");
     indent();
     node->update->accept(*this);
     dedent();
   }
 
   printIndent();
-  print("body:\n");
+  std::println("body:");
   indent();
   node->body->accept(*this);
   dedent();
@@ -433,7 +431,7 @@ void ASTPrinter::visit(ForStmt *node) {
 
 void ASTPrinter::visit(ReturnStmt *node) {
   printIndent();
-  print("%sReturnStmt%s (id=%lld)\n", C_STMT, RESET, assignId(node));
+  std::println("{}ReturnStmt{} (id={})", C_STMT, RESET, assignId(node));
   if (node->value) {
     indent();
     node->value->accept(*this);
@@ -443,7 +441,7 @@ void ASTPrinter::visit(ReturnStmt *node) {
 
 void ASTPrinter::visit(DeferStmt *node) {
   printIndent();
-  print("%sDeferStmt%s (id=%lld)\n", C_STMT, RESET, assignId(node));
+  std::println("{}DeferStmt{} (id={})", C_STMT, RESET, assignId(node));
   indent();
   node->deferExpr->accept(*this);
   dedent();
@@ -451,25 +449,29 @@ void ASTPrinter::visit(DeferStmt *node) {
 
 void ASTPrinter::visit(SwitchStmt *node) {
   printIndent();
-  print("%sSwitchStmt%s (id=%lld)\n", C_STMT, RESET, assignId(node));
+  std::println("{}SwitchStmt{} (id={})", C_STMT, RESET, assignId(node));
   indent();
 
   printIndent();
-  print("expr:\n");
+  std::println("expr:");
   indent();
   node->expression->accept(*this);
   dedent();
 
   printIndent();
-  print("cases:\n");
+  std::println("patterns:");
   indent();
-  for (auto &c : node->cases)
-    c->accept(*this);
+
+  if (node->switchArm) {
+    for (auto &c : *node->switchArm)
+      c->accept(*this);
+  }
+
   dedent();
 
   if (node->defaultBody) {
     printIndent();
-    print("default:\n");
+    std::println("default:");
     indent();
     node->defaultBody->accept(*this);
     dedent();
@@ -478,76 +480,56 @@ void ASTPrinter::visit(SwitchStmt *node) {
   dedent();
 }
 
-void ASTPrinter::visit(CaseBlock *node) {
+void ASTPrinter::visit(SwitchArm *node) {
   printIndent();
-  print("%sCaseBlock%s (id=%lld)\n", C_STMT, RESET, assignId(node));
-  indent();
-  node->value->accept(*this);
-  node->body->accept(*this);
-  dedent();
-}
-
-void ASTPrinter::visit(MatchStmt *node) {
-  printIndent();
-  print("%sMatchStmt%s (id=%lld)\n", C_STMT, RESET, assignId(node));
+  std::println("{}SwitchArm{} (id={})", C_STMT, RESET, assignId(node));
   indent();
 
   printIndent();
-  print("expr:\n");
+  std::println("patterns:");
   indent();
-  node->expression->accept(*this);
-  dedent();
 
-  printIndent();
-  print("arms:\n");
-  indent();
-  for (auto &a : node->arms)
-    a->accept(*this);
-  dedent();
+  if (node->patterns) {
+    for (auto &p : *node->patterns)
+      p->accept(*this);
+  }
 
   dedent();
-}
-
-void ASTPrinter::visit(MatchArm *node) {
-  printIndent();
-  print("%sMatchArm%s (id=%lld)\n", C_STMT, RESET, assignId(node));
-  indent();
 
   printIndent();
-  print("patterns:\n");
-  indent();
-  for (auto &p : node->patterns)
-    p->accept(*this);
-  dedent();
+  if (node->fatArrowTok)
+    std::println("{}{}{}", C_KEY, safeToken(node->fatArrowTok), RESET);
+  else
+    std::println("{}=>{}", C_KEY, RESET);
 
-  printIndent();
-  print("body:\n");
-  indent();
-  node->body->accept(*this);
-  dedent();
+  if (node->body) {
+    indent();
+    node->body->accept(*this);
+    dedent();
+  }
 
   dedent();
 }
 
 void ASTPrinter::visit(BreakStmt *node) {
   printIndent();
-  print("%sBreakStmt%s (id=%lld)\n", C_STMT, RESET, assignId(node));
+  std::println("{}BreakStmt{} (id={})", C_STMT, RESET, assignId(node));
 }
 
 void ASTPrinter::visit(ContinueStmt *node) {
   printIndent();
-  print("%sContinueStmt%s (id=%lld)\n", C_STMT, RESET, assignId(node));
+  std::println("{}ContinueStmt{} (id={})", C_STMT, RESET, assignId(node));
 }
 
 void ASTPrinter::visit(EmptyStmt *node) {
   printIndent();
-  print("%sEmptyStmt%s (id=%lld)\n", C_STMT, RESET, assignId(node));
+  std::println("{}EmptyStmt{} (id={})", C_STMT, RESET, assignId(node));
 }
 
-// Patterns
+// -------------------- Patterns --------------------
 void ASTPrinter::visit(ConstPattern *node) {
   printIndent();
-  print("%sConstPattern%s (id=%lld)\n", C_PATTERN, RESET, assignId(node));
+  std::println("{}ConstPattern{} (id={})", C_PATTERN, RESET, assignId(node));
   indent();
   node->value->accept(*this);
   dedent();
@@ -555,54 +537,55 @@ void ASTPrinter::visit(ConstPattern *node) {
 
 void ASTPrinter::visit(WildcardPattern *node) {
   printIndent();
-  print("%sWildcardPattern%s (id=%lld)\n", C_PATTERN, RESET, assignId(node));
+  std::println("{}WildcardPattern{} (id={})", C_PATTERN, RESET, assignId(node));
 }
 
-// Expressions
+// -------------------- Expressions --------------------
 void ASTPrinter::visit(Identifier *node) {
   printIndent();
-  print("%sIdentifier%s (id=%lld, name=%s)\n", C_IDENT, RESET, assignId(node),
-        node->name ? safeToken(node->name) : "<unnamed>");
+  std::println("{}Identifier{} (id={}, name={})", C_IDENT, RESET,
+               assignId(node),
+               node->name ? safeToken(node->name) : "<unnamed>");
 }
 
 void ASTPrinter::visit(IntLiteral *node) {
   printIndent();
-  print("%sIntLiteral%s (id=%lld, val=%s)\n", C_LITERAL, RESET, assignId(node),
-        node->value ? safeToken(node->value) : "<null>");
+  std::println("{}IntLiteral{} (id={}, val={})", C_LITERAL, RESET,
+               assignId(node), node->value ? safeToken(node->value) : "<null>");
 }
 
 void ASTPrinter::visit(FloatLiteral *node) {
   printIndent();
-  print("%sFloatLiteral%s (id=%lld, val=%s)\n", C_LITERAL, RESET,
-        assignId(node), node->value ? safeToken(node->value) : "<null>");
+  std::println("{}FloatLiteral{} (id={}, val={})", C_LITERAL, RESET,
+               assignId(node), node->value ? safeToken(node->value) : "<null>");
 }
 
 void ASTPrinter::visit(StringLiteral *node) {
   printIndent();
-  print("%sStringLiteral%s (id=%lld, val=%s)\n", C_LITERAL, RESET,
-        assignId(node), node->value ? safeToken(node->value) : "<null>");
+  std::println("{}StringLiteral{} (id={}, val={})", C_LITERAL, RESET,
+               assignId(node), node->value ? safeToken(node->value) : "<null>");
 }
 
 void ASTPrinter::visit(CharLiteral *node) {
   printIndent();
-  print("%sCharLiteral%s (id=%lld, val=%s)\n", C_LITERAL, RESET, assignId(node),
-        node->value ? safeToken(node->value) : "<null>");
+  std::println("{}CharLiteral{} (id={}, val={})", C_LITERAL, RESET,
+               assignId(node), node->value ? safeToken(node->value) : "<null>");
 }
 
 void ASTPrinter::visit(BoolLiteral *node) {
   printIndent();
-  print("%sBoolLiteral%s (id=%lld, val=%s)\n", C_LITERAL, RESET, assignId(node),
-        node->boolValue ? "true" : "false");
+  std::println("{}BoolLiteral{} (id={}, val={})", C_LITERAL, RESET,
+               assignId(node), node->boolValue ? "true" : "false");
 }
 
 void ASTPrinter::visit(NullLiteral *node) {
   printIndent();
-  print("%sNullLiteral%s (id=%lld)\n", C_LITERAL, RESET, assignId(node));
+  std::println("{}NullLiteral{} (id={})", C_LITERAL, RESET, assignId(node));
 }
 
 void ASTPrinter::visit(GroupedExpr *node) {
   printIndent();
-  print("%sGroupedExpr%s (id=%lld)\n", C_EXPR, RESET, assignId(node));
+  std::println("{}GroupedExpr{} (id={})", C_EXPR, RESET, assignId(node));
   indent();
   node->inner->accept(*this);
   dedent();
@@ -610,8 +593,9 @@ void ASTPrinter::visit(GroupedExpr *node) {
 
 void ASTPrinter::visit(StructInitField *node) {
   printIndent();
-  print("%sStructInitField%s (id=%lld, name=%s)\n", C_EXPR, RESET,
-        assignId(node), node->name ? safeToken(node->name) : "<unnamed>");
+  std::println("{}StructInitField{} (id={}, name={})", C_EXPR, RESET,
+               assignId(node),
+               node->name ? safeToken(node->name) : "<unnamed>");
   indent();
   node->value->accept(*this);
   dedent();
@@ -619,8 +603,8 @@ void ASTPrinter::visit(StructInitField *node) {
 
 void ASTPrinter::visit(StructInit *node) {
   printIndent();
-  print("%sStructInit%s (id=%lld, type=%s)\n", C_EXPR, RESET, assignId(node),
-        node->structName ? safeToken(node->structName) : "<unnamed>");
+  std::println("{}StructInit{} (id={}, type={})", C_EXPR, RESET, assignId(node),
+               node->structName ? safeToken(node->structName) : "<unnamed>");
   indent();
   if (node->fields) {
     for (auto &f : *node->fields)
@@ -631,8 +615,8 @@ void ASTPrinter::visit(StructInit *node) {
 
 void ASTPrinter::visit(UnaryExpr *node) {
   printIndent();
-  print("%sUnaryExpr%s (id=%lld, op='%s')\n", C_EXPR, RESET, assignId(node),
-        node->opTok ? safeToken(node->opTok) : "<op>");
+  std::println("{}UnaryExpr{} (id={}, op='{}')", C_EXPR, RESET, assignId(node),
+               node->opTok ? safeToken(node->opTok) : "<op>");
   indent();
   node->operand->accept(*this);
   dedent();
@@ -640,8 +624,8 @@ void ASTPrinter::visit(UnaryExpr *node) {
 
 void ASTPrinter::visit(BinaryExpr *node) {
   printIndent();
-  print("%sBinaryExpr%s (id=%lld, op='%s')\n", C_EXPR, RESET, assignId(node),
-        node->opTok ? safeToken(node->opTok) : "<op>");
+  std::println("{}BinaryExpr{} (id={}, op='{}')", C_EXPR, RESET, assignId(node),
+               node->opTok ? safeToken(node->opTok) : "<op>");
   indent();
   node->left->accept(*this);
   node->right->accept(*this);
@@ -650,8 +634,8 @@ void ASTPrinter::visit(BinaryExpr *node) {
 
 void ASTPrinter::visit(AssignmentExpr *node) {
   printIndent();
-  print("%sAssignmentExpr%s (id=%lld, op='%s')\n", C_EXPR, RESET,
-        assignId(node), node->opTok ? safeToken(node->opTok) : "<op>");
+  std::println("{}AssignmentExpr{} (id={}, op='{}')", C_EXPR, RESET,
+               assignId(node), node->opTok ? safeToken(node->opTok) : "<op>");
   indent();
   node->left->accept(*this);
   node->right->accept(*this);
@@ -660,23 +644,23 @@ void ASTPrinter::visit(AssignmentExpr *node) {
 
 void ASTPrinter::visit(ConditionalExpr *node) {
   printIndent();
-  print("%sConditionalExpr%s (id=%lld)\n", C_EXPR, RESET, assignId(node));
+  std::println("{}ConditionalExpr{} (id={})", C_EXPR, RESET, assignId(node));
   indent();
 
   printIndent();
-  print("cond:\n");
+  std::println("cond:");
   indent();
   node->condition->accept(*this);
   dedent();
 
   printIndent();
-  print("then:\n");
+  std::println("then:");
   indent();
   node->thenExpr->accept(*this);
   dedent();
 
   printIndent();
-  print("else:\n");
+  std::println("else:");
   indent();
   node->elseExpr->accept(*this);
   dedent();
@@ -686,35 +670,38 @@ void ASTPrinter::visit(ConditionalExpr *node) {
 
 void ASTPrinter::visit(CastExpr *node) {
   printIndent();
-  print("%sCastExpr%s (id=%lld)\n", C_EXPR, RESET, assignId(node));
+  std::println("{}CastExpr{} (id={})", C_EXPR, RESET, assignId(node));
   indent();
+
   printIndent();
-  print("type:\n");
+  std::println("type:");
   indent();
   node->targetType->accept(*this);
   dedent();
+
   printIndent();
-  print("expr:\n");
+  std::println("expr:");
   indent();
   node->operand->accept(*this);
   dedent();
+
   dedent();
 }
 
 void ASTPrinter::visit(CallExpr *node) {
   printIndent();
-  print("%sCallExpr%s (id=%lld)\n", C_EXPR, RESET, assignId(node));
+  std::println("{}CallExpr{} (id={})", C_EXPR, RESET, assignId(node));
   indent();
 
   printIndent();
-  print("callee:\n");
+  std::println("callee:");
   indent();
   node->callee->accept(*this);
   dedent();
 
   if (node->arguments) {
     printIndent();
-    print("args:\n");
+    std::println("args:");
     indent();
     for (auto &a : *node->arguments)
       a->accept(*this);
@@ -726,8 +713,9 @@ void ASTPrinter::visit(CallExpr *node) {
 
 void ASTPrinter::visit(MemberAccessExpr *node) {
   printIndent();
-  print("%sMemberAccessExpr%s (id=%lld, member=%s)\n", C_EXPR, RESET,
-        assignId(node), node->member ? safeToken(node->member) : "<unnamed>");
+  std::println("{}MemberAccessExpr{} (id={}, member={})", C_EXPR, RESET,
+               assignId(node),
+               node->member ? safeToken(node->member) : "<unnamed>");
   indent();
   node->object->accept(*this);
   dedent();
@@ -735,25 +723,28 @@ void ASTPrinter::visit(MemberAccessExpr *node) {
 
 void ASTPrinter::visit(IndexAccessExpr *node) {
   printIndent();
-  print("%sIndexAccessExpr%s (id=%lld)\n", C_EXPR, RESET, assignId(node));
+  std::println("{}IndexAccessExpr{} (id={})", C_EXPR, RESET, assignId(node));
   indent();
+
   printIndent();
-  print("array:\n");
+  std::println("array:");
   indent();
   node->array->accept(*this);
   dedent();
+
   printIndent();
-  print("index:\n");
+  std::println("index:");
   indent();
   node->index->accept(*this);
   dedent();
+
   dedent();
 }
 
 void ASTPrinter::visit(PostfixStepExpr *node) {
   printIndent();
-  print("%sPostfixStepExpr%s (id=%lld, op='%s')\n", C_EXPR, RESET,
-        assignId(node), node->opTok ? safeToken(node->opTok) : "<op>");
+  std::println("{}PostfixStepExpr{} (id={}, op='{}')", C_EXPR, RESET,
+               assignId(node), node->opTok ? safeToken(node->opTok) : "<op>");
   indent();
   node->operand->accept(*this);
   dedent();

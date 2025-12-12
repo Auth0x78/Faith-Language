@@ -51,13 +51,11 @@ public:
   void visit(ForStmt *node) override;
   void visit(ReturnStmt *node) override;
   void visit(DeferStmt *node) override;
-  void visit(SwitchStmt *node) override;
-  void visit(CaseBlock *node) override;
-  void visit(MatchStmt *node) override;
-  void visit(MatchArm *node) override;
   void visit(BreakStmt *node) override;
   void visit(ContinueStmt *node) override;
   void visit(EmptyStmt *node) override;
+  void visit(SwitchStmt *node) override;
+  void visit(SwitchArm *node) override;
 
   // Patterns
   void visit(ConstPattern *node) override;
@@ -88,9 +86,6 @@ private:
   // ─────────────────────────────
   // Internal helpers
   // ─────────────────────────────
-
-  // Safe printing (ANSI aware)
-  void print(const char *fmt, ...);
   void printIndent();
 
   // indentation
