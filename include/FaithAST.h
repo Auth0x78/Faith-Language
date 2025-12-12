@@ -113,9 +113,8 @@ class ForStmt;
 class ReturnStmt;
 class DeferStmt;
 class SwitchStmt;
+class SwitchArm;
 class CaseBlock;
-class MatchStmt;
-class MatchArm;
 class BreakStmt;
 class ContinueStmt;
 class EmptyStmt;
@@ -150,6 +149,16 @@ using paramsTypeVec = Vec<UPtr<Faith::TypeSpec>>;
 using paramsList = Vec<UPtr<Param>>;
 
 using argList = Vec<UPtr<Expr>>;
+
+using PatternList = Vec<UPtr<Pattern>>;
+
+using StructBody = Vec<UPtr<StructField>>;
+
+using StmtList = Vec<UPtr<Stmt>>;
+
+using ForInit = std::variant<UPtr<VarDecl>, UPtr<Expr>>;
+
+using structInitFieldList = Vec<UPtr<StructInitField>>;
 
 // =======================================================
 // ENUMS FOR OPERATORS
@@ -254,9 +263,7 @@ public:
   virtual void visit(ReturnStmt *node) = 0;
   virtual void visit(DeferStmt *node) = 0;
   virtual void visit(SwitchStmt *node) = 0;
-  virtual void visit(CaseBlock *node) = 0;
-  virtual void visit(MatchStmt *node) = 0;
-  virtual void visit(MatchArm *node) = 0;
+  virtual void visit(SwitchArm *node) = 0;
   virtual void visit(BreakStmt *node) = 0;
   virtual void visit(ContinueStmt *node) = 0;
   virtual void visit(EmptyStmt *node) = 0;
@@ -429,8 +436,6 @@ public:
   void accept(ASTVisitor &visitor) override { visitor.visit(this); }
 };
 
-using StructBody = Vec<UPtr<StructField>>;
-
 class StructDecl final : public Decl {
 public:
   TokenView structName;
@@ -541,8 +546,6 @@ public:
 // STATEMENTS
 // =======================================================
 
-using StmtList = Vec<UPtr<Stmt>>;
-
 class CompoundStmt final : public Stmt {
 public:
   TokenView openBrace;
@@ -598,8 +601,6 @@ public:
 
   void accept(ASTVisitor &visitor) override { visitor.visit(this); }
 };
-
-using ForInit = std::variant<UPtr<VarDecl>, UPtr<Expr>>;
 
 class ForStmt final : public Stmt {
 public:
@@ -664,65 +665,38 @@ public:
   void accept(ASTVisitor &visitor) override { visitor.visit(this); }
 };
 
-// --- Switch/Match ---
-
-class CaseBlock final : public Node {
-public:
-  TokenView caseTok;
-  UPtr<Expr> value; // const_expr
-  UPtr<CompoundStmt> body;
-
-  CaseBlock(TokenView caseTok, UPtr<Expr> val, UPtr<CompoundStmt> body)
-      : caseTok(caseTok), value(std::move(val)), body(std::move(body)) {}
-
-  void accept(ASTVisitor &visitor) override { visitor.visit(this); }
-};
-
+// --- Switch ---
 class SwitchStmt final : public Stmt {
 public:
   TokenView switchTok;
   UPtr<Expr> expression;
-  Vec<UPtr<CaseBlock>> cases;
+  UPtr<Vec<UPtr<SwitchArm>>> switchArm;
 
   // Empty if no default
   UPtrNullable<CompoundStmt> defaultBody;
 
-  SwitchStmt(TokenView swTok, UPtr<Expr> expr, Vec<UPtr<CaseBlock>> cases,
-             UPtrNullable<CompoundStmt> defBody)
-      : switchTok(swTok), expression(std::move(expr)), cases(std::move(cases)),
-        defaultBody(std::move(defBody)) {}
+  SwitchStmt(TokenView swTok, UPtr<Expr> expr, UPtr<Vec<UPtr<SwitchArm>>> arms)
+      : switchTok(swTok), expression(std::move(expr)),
+        switchArm(std::move(arms)) {}
 
   void accept(ASTVisitor &visitor) override { visitor.visit(this); }
 };
 
-class MatchArm final : public Node {
+class SwitchArm final : public Node {
 public:
-  Vec<UPtr<Pattern>> patterns;
-  UPtr<CompoundStmt> body;
+  UPtr<PatternList> patterns;
+  UPtr<Stmt> body;
   TokenView fatArrowTok; // "=>"
 
-  MatchArm(Vec<UPtr<Pattern>> pats, UPtr<CompoundStmt> body, TokenView fatArrow)
+  SwitchArm(UPtr<PatternList> pats, UPtr<Stmt> body, TokenView fatArrow)
       : patterns(std::move(pats)), body(std::move(body)),
         fatArrowTok(fatArrow) {}
 
   void accept(ASTVisitor &visitor) override { visitor.visit(this); }
 };
 
-class MatchStmt final : public Stmt {
-public:
-  TokenView matchTok;
-  UPtr<Expr> expression;
-  Vec<UPtr<MatchArm>> arms;
-
-  MatchStmt(TokenView matchTok, UPtr<Expr> expr, Vec<UPtr<MatchArm>> arms)
-      : matchTok(matchTok), expression(std::move(expr)), arms(std::move(arms)) {
-  }
-
-  void accept(ASTVisitor &visitor) override { visitor.visit(this); }
-};
-
 // =======================================================
-// PATTERNS (for Match)
+// PATTERNS (for Switch)
 // =======================================================
 
 /** @brief <pattern> ::= <const_expr> */
@@ -830,8 +804,6 @@ public:
 };
 
 /** @brief <struct_init> ::= <identifier> "{" ... "}" */
-using structInitFieldList = Vec<UPtr<StructInitField>>;
-
 class StructInit final : public Expr {
 public:
   TokenView structName;
