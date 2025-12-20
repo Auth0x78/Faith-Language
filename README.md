@@ -76,30 +76,6 @@ func main() -> i32 {
     return 0;
 }
 ```
-
----
-
-## 🧩 Project Structure (Intended)
-
-```
-Faith/
- ├── src/
- │   ├── lexer.cpp         # Lexical analysis
- │   ├── parser/           # Parsing logic
- │   ├── ast/              # Abstract syntax tree nodes
- │   ├── semantic/         # Type checking, sym emitter
- │   ├── runtime/          # Built-in runtime features
- │   └── main.cpp          # Compiler entry
- ├── include/              # Public headers
- ├── resoruces             # Resource Files
- ├── grammar/
- │   └── Faith.bnf         # Human-readable grammar
- ├── tests/                # Test programs
- ├── examples/             # Example Faith programs
- ├── docs/                 # Design and notes
- └── README.md
-```
-
 ---
 
 ## 🧰 Build Instructions
@@ -135,17 +111,17 @@ cmake --build build
 ### Parser
 
 - [x] Write BNF grammar
-- [ ] Build manual recursive-descent parser version
-- [ ] Implement struct parsing and initialization logic
-- [ ] Add switch/match expression parsing
+- [x] Build manual recursive-descent parser version
+- [x] Implement struct parsing and initialization logic
+- [x] Add switch/match expression parsing
 
 ### AST & Semantic Analysis
 
-- [ ] Define AST node types
-- [ ] Implement symbol table for variables/functions
-- [ ] Type checking and coercion rules
-- [ ] Error handling for invalid operations
-- [ ] Function overloads and extern declarations
+- [x] Define AST node types
+- [x] Implement symbol table for variables/functions
+- [x] Type checking and coercion rules
+- [x] Error handling for invalid operations
+- [x] Function overloads and extern declarations
 
 ### Code Generation
 
@@ -178,8 +154,8 @@ cmake --build build
 
 ## 🔒 Note
 
-This repository is **private** and intended for personal compiler development and experimentation.
-Not yet ready for public use or contribution.
+This repository is intended for personal compiler development and experimentation.
+Public use of this repository and contribution to this repository are welcomed!
 
 ---
 
